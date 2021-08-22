@@ -50,15 +50,7 @@ impl Scanner {
                     '"' => self.emit_string_token(&mut char_indices),
                     ch if ch.is_ascii_digit() => self.emit_number_token(ch, &mut char_indices),
                     ch if ch.is_ascii_alphabetic() || ch == '_' => {
-                        let mut iden = ch.to_string();
-                        while let Some((_pos, ch)) =
-                            char_indices.next_if(|(_pos, ch)| ch.is_alphabetic())
-                        {
-                            iden.push(ch);
-                        }
-
-                        self.match_reserved_word(iden.as_str())
-                            .unwrap_or_else(|| Token::IDENTIFIER(iden))
+                        self.emit_iden_token(ch, &mut char_indices)
                     }
                     '/' => match char_indices.next_if_eq(&(pos + 1, '/')) {
                         Some(_equals) => {
@@ -99,6 +91,16 @@ impl Scanner {
             "while" => Some(Token::WHILE),
             _ => None,
         }
+    }
+
+    fn emit_iden_token(&self, initial: char, char_indices: &mut Peekable<CharIndices>) -> Token {
+        let mut iden = initial.to_string();
+        while let Some((_pos, ch)) = char_indices.next_if(|(_pos, ch)| ch.is_alphabetic()) {
+            iden.push(ch);
+        }
+
+        self.match_reserved_word(iden.as_str())
+            .unwrap_or_else(|| Token::IDENTIFIER(iden))
     }
 
     fn emit_string_token(&self, char_indices: &mut Peekable<CharIndices>) -> Token {
