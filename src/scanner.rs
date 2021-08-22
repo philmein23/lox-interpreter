@@ -24,7 +24,6 @@ impl Scanner {
                     ' ' => continue,
                     '+' => Token::PLUS,
                     '-' => Token::MINUS,
-                    '/' => Token::SLASH,
                     '!' => match char_indices.next_if_eq(&(pos + 1, '=')) {
                         Some(_equals) => Token::BANG_EQUAL,
                         None => Token::BANG,
@@ -49,7 +48,7 @@ impl Scanner {
                     ',' => Token::COMMA,
                     ';' => Token::SEMICOLON,
                     '"' => self.emit_string_token(&mut char_indices),
-                    ch if ch.is_ascii_digit() => self.emit_number_token(&mut char_indices),
+                    ch if ch.is_ascii_digit() => self.emit_number_token(ch, &mut char_indices),
                     ch if ch.is_ascii_alphabetic() || ch == '_' => {
                         let mut iden = ch.to_string();
                         while let Some((_pos, ch)) =
@@ -63,7 +62,10 @@ impl Scanner {
                     }
                     '/' => match char_indices.next_if_eq(&(pos + 1, '/')) {
                         Some(_equals) => {
-                            char_indices.count();
+                            while let Some((_pos, _ch)) = char_indices.next() {
+                                continue;
+                            }
+                            Token::INVALID("Comment".into())
                         }
                         None => Token::SLASH,
                     },
@@ -111,8 +113,8 @@ impl Scanner {
         }
     }
 
-    fn emit_number_token(&self, char_indices: &mut Peekable<CharIndices>) -> Token {
-        let mut digit = "".to_string();
+    fn emit_number_token(&self, initial: char, char_indices: &mut Peekable<CharIndices>) -> Token {
+        let mut digit = initial.to_string();
         while let Some((_pos, ch)) = char_indices.next_if(|(_pos, ch)| ch.is_ascii_digit()) {
             digit.push(ch);
         }
@@ -122,6 +124,7 @@ impl Scanner {
     }
 }
 
+#[derive(Debug)]
 pub enum ScannerError {
     ScanningError(String),
 }
