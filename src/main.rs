@@ -7,6 +7,8 @@ use scanner::Scanner;
 mod token;
 use token::Token;
 
+mod ast;
+
 fn main() {
     for arg in args().skip(1) {
         let _result = run_file(arg).or_else(|e| Err(e));
