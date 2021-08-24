@@ -9,6 +9,8 @@ use token::Token;
 
 mod ast;
 
+mod parser;
+
 fn main() {
     for arg in args().skip(1) {
         let _result = run_file(arg).or_else(|e| Err(e));
