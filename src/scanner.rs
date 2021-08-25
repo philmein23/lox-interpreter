@@ -24,6 +24,7 @@ impl Scanner {
                     ' ' => continue,
                     '+' => Token::PLUS,
                     '-' => Token::MINUS,
+                    '*' => Token::STAR,
                     '!' => match char_indices.next_if_eq(&(pos + 1, '=')) {
                         Some(_equals) => Token::BANG_EQUAL,
                         None => Token::BANG,

@@ -147,30 +147,13 @@ impl<'a> Parser<'a> {
     }
 
     fn primary(&mut self) -> Result<Expression, ParseError> {
-        let next = *self.tokens.peek().unwrap();
-        match next {
-            Token::FALSE => {
-                self.tokens.next();
-                Ok(Expression::Boolean(false))
-            }
-            Token::TRUE => {
-                self.tokens.next();
-                Ok(Expression::Boolean(true))
-            }
-            Token::NIL => {
-                self.tokens.next();
-                Ok(Expression::Nil)
-            }
-            Token::NUMBER(n) => {
-                self.tokens.next();
-                Ok(Expression::Number(n))
-            }
-            Token::STRING(s) => {
-                self.tokens.next();
-                Ok(Expression::StringLiteral(s.to_string()))
-            }
-            Token::LEFT_PAREN => {
-                self.tokens.next();
+        let result = match self.tokens.peek() {
+            Some(Token::FALSE) => Ok(Expression::Boolean(false)),
+            Some(Token::TRUE) => Ok(Expression::Boolean(true)),
+            Some(Token::NIL) => Ok(Expression::Nil),
+            Some(Token::NUMBER(n)) => Ok(Expression::Number(*n)),
+            Some(Token::STRING(s)) => Ok(Expression::StringLiteral(s.to_string())),
+            Some(Token::LEFT_PAREN) => {
                 let expr = self.expression()?;
                 let maybe_right_paren = self.tokens.next();
 
@@ -181,7 +164,10 @@ impl<'a> Parser<'a> {
                 Ok(Expression::Grouping(Box::new(expr)))
             }
             _ => Err(ParseError::NewParseError("Expected expression.".into())),
-        }
+        };
+
+        self.tokens.next();
+        result
     }
 
     fn synchronize(&mut self) {

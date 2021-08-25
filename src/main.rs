@@ -61,7 +61,7 @@ impl fmt::Display for Error {
 #[test]
 fn test_run_file() {
     let input = "var age = 12;\nage = 24;\n// This is a comment";
-    let input2 = "var personName = \"Phil\"; var age = 1 + 2 * 6;";
+    let input2 = "1 == 2 >= -6";
     // run(input.to_string());
     let mut scanner = Scanner::new(input);
     let mut scanner2 = Scanner::new(input2);
@@ -70,7 +70,7 @@ fn test_run_file() {
     let mut iter2 = tokens2.into_iter().peekable();
     let mut parser = Parser::new(&mut iter2);
     let ast = parser.parse().unwrap();
-    println!("AST: {:?}", ast);
+    print!("AST: {:?}", ast);
     let expected_tokens = vec![
         Token::VAR,
         Token::IDENTIFIER("age".to_string()),

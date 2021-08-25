@@ -21,7 +21,7 @@ impl Display for Expression {
                 write!(f, "({} {} {})", op, left, right)
             }
             Expression::Unary(op, exp) => {
-                write!(f, "({} {})", op, exp)
+                write!(f, "({}{})", op, exp)
             }
             Expression::Grouping(expr) => {
                 write!(f, "({})", expr)
@@ -30,7 +30,7 @@ impl Display for Expression {
                 write!(f, "{}", num)
             }
             Expression::StringLiteral(word) => {
-                write!(f, "{}", word)
+                write!(f, "\"{}\"", word)
             }
             Expression::Boolean(b) => {
                 write!(f, "{}", b)
