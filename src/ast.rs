@@ -3,12 +3,15 @@ use std::fmt::Display;
 
 use crate::token::Token;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
     Binary(Box<Expression>, Infix, Box<Expression>),
     Unary(Prefix, Box<Expression>),
     Grouping(Box<Expression>),
     Number(i64),
     StringLiteral(String),
+    Boolean(bool),
+    Nil,
 }
 
 impl Display for Expression {
@@ -29,10 +32,17 @@ impl Display for Expression {
             Expression::StringLiteral(word) => {
                 write!(f, "{}", word)
             }
+            Expression::Boolean(b) => {
+                write!(f, "{}", b)
+            }
+            Expression::Nil => {
+                write!(f, "nil")
+            }
         }
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prefix {
     BANG,
     MINUS,
@@ -47,6 +57,7 @@ impl Display for Prefix {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Infix {
     PLUS,
     MINUS,
