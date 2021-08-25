@@ -17,11 +17,18 @@ impl Display for Expression {
             Expression::Binary(left, op, right) => {
                 write!(f, "({} {} {})", op, left, right)
             }
-            Expression::Unary(_, _) => todo!(),
-            Expression::Grouping(_) => todo!(),
-            Expression::Number(_) => todo!(),
-            Expression::StringLiteral(_) => todo!(),
-            _ => todo!(),
+            Expression::Unary(op, exp) => {
+                write!(f, "({} {})", op, exp)
+            }
+            Expression::Grouping(expr) => {
+                write!(f, "({})", expr)
+            }
+            Expression::Number(num) => {
+                write!(f, "{}", num)
+            }
+            Expression::StringLiteral(word) => {
+                write!(f, "{}", word)
+            }
         }
     }
 }
@@ -62,6 +69,10 @@ impl Display for Infix {
             Infix::SLASH => write!(f, "/"),
             Infix::EQUAL_EQUAL => write!(f, "=="),
             Infix::BANG_EQUAL => write!(f, "!="),
+            Infix::GREATER => write!(f, ">"),
+            Infix::GREATER_EQUAL => write!(f, ">="),
+            Infix::LESS => write!(f, "<"),
+            Infix::LESS_EQUAL => write!(f, "<="),
         }
     }
 }
