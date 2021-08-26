@@ -12,6 +12,10 @@ mod ast;
 mod parser;
 use parser::Parser;
 
+mod interpreter;
+
+mod object;
+
 fn main() {
     for arg in args().skip(1) {
         let _result = run_file(arg).or_else(|e| Err(e));

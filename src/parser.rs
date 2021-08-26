@@ -6,15 +6,11 @@ use crate::token::Token;
 
 pub struct Parser<'a> {
     tokens: &'a mut Peekable<IntoIter<Token>>,
-    current: Option<Token>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a mut Peekable<IntoIter<Token>>) -> Self {
-        Parser {
-            tokens,
-            current: None,
-        }
+        Parser { tokens }
     }
 
     pub fn parse(&mut self) -> Result<Expression, ParseError> {

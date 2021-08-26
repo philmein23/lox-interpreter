@@ -1,0 +1,20 @@
+use std::fmt::Display;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Object {
+    Nil,
+    Boolean(bool),
+    Number(i64),
+    String(String),
+}
+
+impl Display for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Object::Nil => write!(f, "nil"),
+            Object::Boolean(b) => write!(f, "{}", b),
+            Object::Number(n) => write!(f, "{}", n),
+            Object::String(s) => write!(f, "{}", s),
+        }
+    }
+}
