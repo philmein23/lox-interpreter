@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 use std::vec::IntoIter;
 
-use crate::ast::{Expression, Infix, Prefix};
+use crate::ast::{Expression, Infix, Prefix, Statement};
 use crate::token::Token;
 
 pub struct Parser<'a> {
@@ -13,12 +13,39 @@ impl<'a> Parser<'a> {
         Parser { tokens }
     }
 
-    pub fn parse(&mut self) -> Result<Expression, ParseError> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
+        let mut statements = vec![];
+        loop {
+            match self.tokens.peek() {
+                None => break,
+                Some(Token::PRINT) => {
+                    let stmt = self.print_statement()?;
+                    statements.push(stmt);
+                }
+                _ => {
+                    let stmt = self.expression_statement()?;
+                    statements.push(stmt);
+                }
+            }
+        }
+        Ok(statements)
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
         self.equality()
+    }
+
+    fn expression_statement(&mut self) -> Result<Statement, ParseError> {
+        let expr = self.expression()?;
+        self.tokens.next(); // consume the ';'
+        Ok(Statement::Expression(Box::new(expr)))
+    }
+
+    fn print_statement(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // consume the print token
+        let expr = self.expression()?;
+        self.tokens.next(); // consume the ';'
+        Ok(Statement::Print(Box::new(expr)))
     }
 
     fn equality(&mut self) -> Result<Expression, ParseError> {
@@ -27,13 +54,13 @@ impl<'a> Parser<'a> {
             match self.tokens.peek() {
                 Some(Token::BANG_EQUAL) => {
                     let op = Infix::BANG_EQUAL;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '!='
                     let right = self.comparison()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
                 Some(Token::EQUAL_EQUAL) => {
                     let op = Infix::EQUAL_EQUAL;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '=='
                     let right = self.comparison()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
@@ -50,25 +77,25 @@ impl<'a> Parser<'a> {
             match self.tokens.peek() {
                 Some(Token::GREATER) => {
                     let op = Infix::GREATER;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '>'
                     let right = self.term()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
                 Some(Token::GREATER_EQUAL) => {
                     let op = Infix::GREATER_EQUAL;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '>='
                     let right = self.term()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
                 Some(Token::LESS) => {
                     let op = Infix::LESS;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '<'
                     let right = self.term()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
                 Some(Token::LESS_EQUAL) => {
                     let op = Infix::LESS_EQUAL;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '<='
                     let right = self.term()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
@@ -84,13 +111,13 @@ impl<'a> Parser<'a> {
             match self.tokens.peek() {
                 Some(Token::MINUS) => {
                     let op = Infix::MINUS;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '-'
                     let right = self.factor()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
                 Some(Token::PLUS) => {
                     let op = Infix::PLUS;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '+'
                     let right = self.factor()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
@@ -107,13 +134,13 @@ impl<'a> Parser<'a> {
             match self.tokens.peek() {
                 Some(Token::SLASH) => {
                     let op = Infix::SLASH;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '/'
                     let right = self.unary()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
                 Some(Token::STAR) => {
                     let op = Infix::STAR;
-                    self.tokens.next();
+                    self.tokens.next(); // consume the '*'
                     let right = self.unary()?;
                     expr = Expression::Binary(Box::new(expr), op, Box::new(right));
                 }
@@ -127,12 +154,12 @@ impl<'a> Parser<'a> {
     fn unary(&mut self) -> Result<Expression, ParseError> {
         let result = match self.tokens.peek() {
             Some(Token::BANG) => {
-                self.tokens.next();
+                self.tokens.next(); // consume the '!'
                 let right = self.unary()?;
                 Ok(Expression::Unary(Prefix::BANG, Box::new(right)))
             }
             Some(Token::MINUS) => {
-                self.tokens.next();
+                self.tokens.next(); // consume the '-'
                 let right = self.unary()?;
                 Ok(Expression::Unary(Prefix::MINUS, Box::new(right)))
             }
@@ -150,8 +177,9 @@ impl<'a> Parser<'a> {
             Some(Token::NUMBER(n)) => Ok(Expression::Number(*n)),
             Some(Token::STRING(s)) => Ok(Expression::StringLiteral(s.to_string())),
             Some(Token::LEFT_PAREN) => {
+                self.tokens.next(); // consume the '('
                 let expr = self.expression()?;
-                let maybe_right_paren = self.tokens.next();
+                let maybe_right_paren = self.tokens.next(); // consume the ')'
 
                 if maybe_right_paren != Some(Token::RIGHT_PAREN) {
                     return Err(ParseError::NewParseError("Expected ')' after.".into()));
@@ -161,13 +189,13 @@ impl<'a> Parser<'a> {
             }
             _ => Err(ParseError::NewParseError("Expected expression.".into())),
         };
+        self.tokens.next(); // consume the token
 
-        self.tokens.next();
         result
     }
 
     fn synchronize(&mut self) {
-        let mut maybe_semicolon = self.tokens.next();
+        let mut maybe_semicolon = self.tokens.next(); // consume the ';'
         loop {
             if maybe_semicolon == Some(Token::SEMICOLON) {
                 return;

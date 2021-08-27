@@ -13,8 +13,10 @@ mod parser;
 use parser::Parser;
 
 mod interpreter;
+use interpreter::Interpreter;
 
 mod object;
+use object::Object;
 
 fn main() {
     for arg in args().skip(1) {
@@ -65,16 +67,9 @@ impl fmt::Display for Error {
 #[test]
 fn test_run_file() {
     let input = "var age = 12;\nage = 24;\n// This is a comment";
-    let input2 = "1 == 2 >= -6";
     // run(input.to_string());
     let mut scanner = Scanner::new(input);
-    let mut scanner2 = Scanner::new(input2);
     let tokens = scanner.scan_tokens().unwrap();
-    let tokens2 = scanner2.scan_tokens().unwrap();
-    let mut iter2 = tokens2.into_iter().peekable();
-    let mut parser = Parser::new(&mut iter2);
-    let ast = parser.parse().unwrap();
-    print!("AST: {:?}", ast);
     let expected_tokens = vec![
         Token::VAR,
         Token::IDENTIFIER("age".to_string()),
@@ -91,4 +86,18 @@ fn test_run_file() {
     for token in tokens {
         assert_eq!(token, iter.next().unwrap());
     }
+}
+
+#[test]
+fn test_evaluation() {
+    let input = "print 1 + 2;";
+    let mut scanner = Scanner::new(input);
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut iter = tokens.into_iter().peekable();
+    let mut parser = Parser::new(&mut iter);
+    let ast = parser.parse().unwrap();
+    let mut interpreter = Interpreter::new();
+    interpreter.evaluate(ast).unwrap();
+
+    // assert_eq!(result, Object::Number(18));
 }

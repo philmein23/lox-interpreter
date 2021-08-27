@@ -1,8 +1,9 @@
-use crate::ast::{Expression, Infix, Prefix};
+use crate::ast::{Expression, Infix, Prefix, Statement};
 use crate::object::Object;
 pub struct Interpreter {}
 
-enum RuntimeError {
+#[derive(Debug, PartialEq)]
+pub enum RuntimeError {
     NewRuntimeError(String),
     InvalidSyntax,
     InvalidArguments,
@@ -16,21 +17,41 @@ impl Interpreter {
         Interpreter {}
     }
 
-    pub fn evaluate(&self, expr: Expression) -> Result<Object, RuntimeError> {
+    pub fn evaluate(&self, stmts: Vec<Statement>) -> Result<(), RuntimeError> {
+        for stmt in stmts {
+            match stmt {
+                Statement::Expression(expr) => {
+                    let _value = self.evaluate_expression(*expr)?;
+                }
+                Statement::Print(expr) => {
+                    self.evaluate_print_statement(*expr);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn evaluate_print_statement(&self, expr: Expression) {
+        let value = self.evaluate_expression(expr).unwrap();
+        println!("{}", value);
+    }
+
+    fn evaluate_expression(&self, expr: Expression) -> Result<Object, RuntimeError> {
         match expr {
             Expression::Binary(left, operator, right) => {
-                let left = self.evaluate(*left)?;
-                let right = self.evaluate(*right)?;
+                let left = self.evaluate_expression(*left)?;
+                let right = self.evaluate_expression(*right)?;
                 self.eval_infix_expression(operator, left, right)
             }
             Expression::Number(value) => Ok(Object::Number(value)),
             Expression::Boolean(value) => Ok(Object::Boolean(value)),
             Expression::StringLiteral(value) => Ok(Object::String(value)),
             Expression::Unary(operator, right) => {
-                let right = self.evaluate(*right)?;
+                let right = self.evaluate_expression(*right)?;
                 self.eval_prefix_expression(operator, right)
             }
-            Expression::Grouping(expr) => self.evaluate(*expr),
+            Expression::Grouping(expr) => self.evaluate_expression(*expr),
             Expression::Nil => Ok(Object::Nil),
             _ => Err(RuntimeError::InvalidSyntax),
         }

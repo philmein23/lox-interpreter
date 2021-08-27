@@ -1,7 +1,19 @@
 use core::fmt;
 use std::fmt::Display;
 
-use crate::token::Token;
+pub enum Statement {
+    Print(Box<Expression>),
+    Expression(Box<Expression>),
+}
+
+impl Display for Statement {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Statement::Print(expr) => write!(f, "print {}", expr),
+            Statement::Expression(expr) => write!(f, "{}", expr),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
