@@ -23,7 +23,37 @@ impl Interpreter {
                 let right = self.evaluate(*right)?;
                 self.eval_infix_expression(operator, left, right)
             }
+            Expression::Number(value) => Ok(Object::Number(value)),
+            Expression::Boolean(value) => Ok(Object::Boolean(value)),
+            Expression::StringLiteral(value) => Ok(Object::String(value)),
+            Expression::Unary(operator, right) => {
+                let right = self.evaluate(*right)?;
+                self.eval_prefix_expression(operator, right)
+            }
+            Expression::Grouping(expr) => self.evaluate(*expr),
+            Expression::Nil => Ok(Object::Nil),
             _ => Err(RuntimeError::InvalidSyntax),
+        }
+    }
+
+    fn eval_prefix_expression(
+        &self,
+        operator: Prefix,
+        right: Object,
+    ) -> Result<Object, RuntimeError> {
+        match operator {
+            Prefix::BANG => match right {
+                Object::Boolean(value) => Ok(Object::Boolean(!value)),
+                _ => Err(RuntimeError::NewRuntimeError(
+                    "Expected operand to be a boolean type".into(),
+                )),
+            },
+            Prefix::MINUS => match right {
+                Object::Number(value) => Ok(Object::Number(-value)),
+                _ => Err(RuntimeError::NewRuntimeError(
+                    "Expected operand to be number type".into(),
+                )),
+            },
         }
     }
 
