@@ -1,4 +1,5 @@
 use std::iter::Peekable;
+use std::ptr::NonNull;
 use std::vec::IntoIter;
 
 use crate::ast::{Expression, Infix, Prefix, Statement};
@@ -18,17 +19,47 @@ impl<'a> Parser<'a> {
         loop {
             match self.tokens.peek() {
                 None => break,
-                Some(Token::PRINT) => {
-                    let stmt = self.print_statement()?;
+                Some(Token::VAR) => {
+                    let stmt = self.var_declaration()?;
                     statements.push(stmt);
                 }
                 _ => {
-                    let stmt = self.expression_statement()?;
+                    let stmt = self.statement()?;
                     statements.push(stmt);
                 }
             }
         }
         Ok(statements)
+    }
+
+    fn var_declaration(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // consume the var token
+        let name = match self.tokens.peek() {
+            Some(Token::IDENTIFIER(name)) => name.to_string(),
+            _ => return Err(ParseError::NewParseError("Expected identifier".into())),
+        };
+        self.tokens.next(); // consume the identifier
+
+        let init = if let Some(Token::EQUAL) = self.tokens.peek() {
+            self.tokens.next(); // consume the equals
+            Some(self.expression()?)
+        } else {
+            None
+        };
+
+        self.tokens.next(); // consume the semicolon
+
+        match init {
+            Some(initiator) => Ok(Statement::Var(name, Some(Box::new(initiator)))),
+            None => Ok(Statement::Var(name, None)),
+        }
+    }
+
+    fn statement(&mut self) -> Result<Statement, ParseError> {
+        match self.tokens.peek() {
+            Some(Token::PRINT) => self.print_statement(),
+            _ => self.expression_statement(),
+        }
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
@@ -187,6 +218,7 @@ impl<'a> Parser<'a> {
 
                 Ok(Expression::Grouping(Box::new(expr)))
             }
+            Some(Token::IDENTIFIER(s)) => Ok(Expression::Variable(s.to_string())),
             _ => Err(ParseError::NewParseError("Expected expression.".into())),
         };
         self.tokens.next(); // consume the token

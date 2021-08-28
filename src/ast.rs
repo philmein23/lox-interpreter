@@ -4,6 +4,7 @@ use std::fmt::Display;
 pub enum Statement {
     Print(Box<Expression>),
     Expression(Box<Expression>),
+    Var(String, Option<Box<Expression>>),
 }
 
 impl Display for Statement {
@@ -11,6 +12,10 @@ impl Display for Statement {
         match self {
             Statement::Print(expr) => write!(f, "print {}", expr),
             Statement::Expression(expr) => write!(f, "{}", expr),
+            Statement::Var(name, expr) => match expr {
+                Some(e) => write!(f, "var {} = {}", name, e),
+                None => write!(f, "var {}", name),
+            },
         }
     }
 }
@@ -23,6 +28,7 @@ pub enum Expression {
     Number(i64),
     StringLiteral(String),
     Boolean(bool),
+    Variable(String),
     Nil,
 }
 
@@ -46,6 +52,9 @@ impl Display for Expression {
             }
             Expression::Boolean(b) => {
                 write!(f, "{}", b)
+            }
+            Expression::Variable(name) => {
+                write!(f, "{}", name)
             }
             Expression::Nil => {
                 write!(f, "nil")

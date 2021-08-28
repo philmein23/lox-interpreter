@@ -20,6 +20,7 @@ impl Interpreter {
     pub fn evaluate(&self, stmts: Vec<Statement>) -> Result<(), RuntimeError> {
         for stmt in stmts {
             match stmt {
+                Statement::Var(name, expr) => {}
                 Statement::Expression(expr) => {
                     let _value = self.evaluate_expression(*expr)?;
                 }
@@ -52,6 +53,7 @@ impl Interpreter {
                 self.eval_prefix_expression(operator, right)
             }
             Expression::Grouping(expr) => self.evaluate_expression(*expr),
+            Expression::Variable(name) => {}
             Expression::Nil => Ok(Object::Nil),
             _ => Err(RuntimeError::InvalidSyntax),
         }
