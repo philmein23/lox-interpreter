@@ -18,6 +18,8 @@ use interpreter::Interpreter;
 mod object;
 use object::Object;
 
+mod environment;
+
 fn main() {
     for arg in args().skip(1) {
         let _result = run_file(arg).or_else(|e| Err(e));
@@ -100,4 +102,16 @@ fn test_evaluation() {
     interpreter.evaluate(ast).unwrap();
 
     // assert_eq!(result, Object::Number(18));
+}
+
+#[test]
+fn test_evaluation_with_var_declaration() {
+    let input = "var a = 10;\nvar b = 20;\nprint a * b;";
+    let mut scanner = Scanner::new(input);
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut iter = tokens.into_iter().peekable();
+    let mut parser = Parser::new(&mut iter);
+    let ast = parser.parse().unwrap();
+    let mut interpreter = Interpreter::new();
+    interpreter.evaluate(ast).unwrap();
 }

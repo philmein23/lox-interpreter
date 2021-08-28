@@ -1,6 +1,6 @@
 use crate::ast::{Expression, Infix, Prefix, Statement};
+use crate::environment::Environment;
 use crate::object::Object;
-pub struct Interpreter {}
 
 #[derive(Debug, PartialEq)]
 pub enum RuntimeError {
@@ -12,15 +12,26 @@ pub enum RuntimeError {
     InvalidNumberOfArgumentsForMethod,
 }
 
+pub struct Interpreter {
+    env: Environment,
+}
+
 impl Interpreter {
     pub fn new() -> Interpreter {
-        Interpreter {}
+        let env = Environment::new();
+        Interpreter { env }
     }
 
-    pub fn evaluate(&self, stmts: Vec<Statement>) -> Result<(), RuntimeError> {
+    pub fn evaluate(&mut self, stmts: Vec<Statement>) -> Result<(), RuntimeError> {
         for stmt in stmts {
             match stmt {
-                Statement::Var(name, expr) => {}
+                Statement::Var(name, expr) => match expr {
+                    Some(expr) => {
+                        let value = self.evaluate_expression(*expr)?;
+                        self.env.define(name, value);
+                    }
+                    None => self.env.define(name, Object::Nil),
+                },
                 Statement::Expression(expr) => {
                     let _value = self.evaluate_expression(*expr)?;
                 }
@@ -53,7 +64,10 @@ impl Interpreter {
                 self.eval_prefix_expression(operator, right)
             }
             Expression::Grouping(expr) => self.evaluate_expression(*expr),
-            Expression::Variable(name) => {}
+            Expression::Variable(name) => {
+                let value = self.env.get(&name).unwrap();
+                Ok(value)
+            }
             Expression::Nil => Ok(Object::Nil),
             _ => Err(RuntimeError::InvalidSyntax),
         }
