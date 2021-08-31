@@ -1,10 +1,12 @@
 use core::fmt;
 use std::fmt::Display;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
     Print(Box<Expression>),
     Expression(Box<Expression>),
     Var(String, Option<Box<Expression>>),
+    Block(Vec<Statement>),
 }
 
 impl Display for Statement {
@@ -16,6 +18,13 @@ impl Display for Statement {
                 Some(e) => write!(f, "var {} = {}", name, e),
                 None => write!(f, "var {}", name),
             },
+            Statement::Block(stmts) => {
+                write!(f, "{{\n")?;
+                for stmt in stmts {
+                    write!(f, "{}\n", stmt)?;
+                }
+                write!(f, "}}")
+            }
         }
     }
 }
@@ -29,6 +38,7 @@ pub enum Expression {
     StringLiteral(String),
     Boolean(bool),
     Variable(String),
+    Assign(String, Box<Expression>),
     Nil,
 }
 
@@ -55,6 +65,9 @@ impl Display for Expression {
             }
             Expression::Variable(name) => {
                 write!(f, "{}", name)
+            }
+            Expression::Assign(name, expr) => {
+                write!(f, "{} = {}", name, expr)
             }
             Expression::Nil => {
                 write!(f, "nil")

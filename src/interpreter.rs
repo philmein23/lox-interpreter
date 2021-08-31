@@ -38,18 +38,27 @@ impl Interpreter {
                 Statement::Print(expr) => {
                     self.evaluate_print_statement(*expr);
                 }
+                Statement::Block(stmts) => {
+                    let nested_env = Environment::extend(self.env.clone());
+                    self.execute_block(stmts, nested_env);
+                }
             }
         }
 
         Ok(())
     }
 
-    fn evaluate_print_statement(&self, expr: Expression) {
+    fn execute_block(&mut self, statements: Vec<Statement>, env: Environment) {
+        self.env = env;
+        let _ = self.evaluate(statements);
+    }
+
+    fn evaluate_print_statement(&mut self, expr: Expression) {
         let value = self.evaluate_expression(expr).unwrap();
         println!("{}", value);
     }
 
-    fn evaluate_expression(&self, expr: Expression) -> Result<Object, RuntimeError> {
+    fn evaluate_expression(&mut self, expr: Expression) -> Result<Object, RuntimeError> {
         match expr {
             Expression::Binary(left, operator, right) => {
                 let left = self.evaluate_expression(*left)?;
@@ -66,6 +75,11 @@ impl Interpreter {
             Expression::Grouping(expr) => self.evaluate_expression(*expr),
             Expression::Variable(name) => {
                 let value = self.env.get(&name).unwrap();
+                Ok(value)
+            }
+            Expression::Assign(name, expr) => {
+                let value = self.evaluate_expression(*expr)?;
+                self.env.assign(name, value.clone());
                 Ok(value)
             }
             Expression::Nil => Ok(Object::Nil),

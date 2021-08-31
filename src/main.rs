@@ -115,3 +115,27 @@ fn test_evaluation_with_var_declaration() {
     let mut interpreter = Interpreter::new();
     interpreter.evaluate(ast).unwrap();
 }
+
+#[test]
+fn test_evaluation_with_var_assignment() {
+    let input = "var a = 10;\nprint a = 25";
+    let mut scanner = Scanner::new(input);
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut iter = tokens.into_iter().peekable();
+    let mut parser = Parser::new(&mut iter);
+    let ast = parser.parse().unwrap();
+    let mut interpreter = Interpreter::new();
+    interpreter.evaluate(ast).unwrap();
+}
+
+#[test]
+fn test_block_scope() {
+    let input = "var a = \"global a\";\nvar b = \"global b\";\nvar c = \"global c\";\n{\nvar a = \"outer a\";\nvar b = \"outer b\";\n{\nvar a = \"inner a\";\nprint a;\nprint b;\n print c;\n}\n}";
+    let mut scanner = Scanner::new(input);
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut iter = tokens.into_iter().peekable();
+    let mut parser = Parser::new(&mut iter);
+    let ast = parser.parse().unwrap();
+    let mut interpreter = Interpreter::new();
+    interpreter.evaluate(ast).unwrap();
+}

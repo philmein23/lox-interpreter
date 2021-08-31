@@ -17,19 +17,27 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
         let mut statements = vec![];
         loop {
-            match self.tokens.peek() {
-                None => break,
-                Some(Token::VAR) => {
-                    let stmt = self.var_declaration()?;
-                    statements.push(stmt);
-                }
-                _ => {
-                    let stmt = self.statement()?;
-                    statements.push(stmt);
-                }
+            let stmt = self.declaration();
+            match stmt {
+                Ok(stmt) => statements.push(stmt),
+                Err(_) => break,
             }
         }
         Ok(statements)
+    }
+
+    fn declaration(&mut self) -> Result<Statement, ParseError> {
+        match self.tokens.peek() {
+            None => Err(ParseError::None),
+            Some(Token::VAR) => {
+                let stmt = self.var_declaration()?;
+                Ok(stmt)
+            }
+            _ => {
+                let stmt = self.statement()?;
+                Ok(stmt)
+            }
+        }
     }
 
     fn var_declaration(&mut self) -> Result<Statement, ParseError> {
@@ -57,13 +65,14 @@ impl<'a> Parser<'a> {
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
         match self.tokens.peek() {
+            Some(Token::LEFT_BRACE) => self.block(),
             Some(Token::PRINT) => self.print_statement(),
             _ => self.expression_statement(),
         }
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
-        self.equality()
+        self.assignment()
     }
 
     fn expression_statement(&mut self) -> Result<Statement, ParseError> {
@@ -72,11 +81,45 @@ impl<'a> Parser<'a> {
         Ok(Statement::Expression(Box::new(expr)))
     }
 
+    fn block(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // consume the '{'
+        let mut statements = vec![];
+        loop {
+            if Some(&Token::RIGHT_BRACE) == self.tokens.peek() {
+                self.tokens.next(); // consume the '}'
+                break;
+            }
+            let stmt = self.declaration()?;
+            statements.push(stmt);
+        }
+
+        Ok(Statement::Block(statements))
+    }
+
     fn print_statement(&mut self) -> Result<Statement, ParseError> {
         self.tokens.next(); // consume the print token
         let expr = self.expression()?;
         self.tokens.next(); // consume the ';'
         Ok(Statement::Print(Box::new(expr)))
+    }
+
+    fn assignment(&mut self) -> Result<Expression, ParseError> {
+        let expr = self.equality();
+
+        if let Some(Token::EQUAL) = self.tokens.peek() {
+            self.tokens.next(); // consume the '='
+            let value = self.assignment()?;
+
+            if let Ok(Expression::Variable(name)) = expr {
+                return Ok(Expression::Assign(name, Box::new(value)));
+            } else {
+                return Err(ParseError::NewParseError(
+                    "Invalid assignment target".into(),
+                ));
+            }
+        }
+
+        expr
     }
 
     fn equality(&mut self) -> Result<Expression, ParseError> {
