@@ -65,6 +65,7 @@ impl<'a> Parser<'a> {
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
         match self.tokens.peek() {
+            Some(Token::IF) => self.if_statement(),
             Some(Token::LEFT_BRACE) => self.block(),
             Some(Token::PRINT) => self.print_statement(),
             _ => self.expression_statement(),
@@ -79,6 +80,33 @@ impl<'a> Parser<'a> {
         let expr = self.expression()?;
         self.tokens.next(); // consume the ';'
         Ok(Statement::Expression(Box::new(expr)))
+    }
+
+    fn if_statement(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // consume the 'if'
+        self.tokens.next(); // comsume the '('
+
+        let condition = self.expression()?;
+
+        self.tokens.next(); // consume the ')'
+        let thenBranch = self.statement()?;
+
+        match self.tokens.peek() {
+            Some(Token::ELSE) => {
+                self.tokens.next(); // consume the 'else'
+                let elseBranch = self.statement()?;
+                Ok(Statement::If(
+                    Box::new(condition),
+                    Box::new(thenBranch),
+                    Some(Box::new(elseBranch)),
+                ))
+            }
+            _ => Ok(Statement::If(
+                Box::new(condition),
+                Box::new(thenBranch),
+                None,
+            )),
+        }
     }
 
     fn block(&mut self) -> Result<Statement, ParseError> {

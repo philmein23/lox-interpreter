@@ -7,6 +7,7 @@ pub enum Statement {
     Expression(Box<Expression>),
     Var(String, Option<Box<Expression>>),
     Block(Vec<Statement>),
+    If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
 }
 
 impl Display for Statement {
@@ -25,6 +26,10 @@ impl Display for Statement {
                 }
                 write!(f, "}}")
             }
+            Statement::If(cond, then, els) => match els {
+                Some(e) => write!(f, "if ({}) {}\n else {}", cond, then, e),
+                None => write!(f, "if ({}) {}", cond, then),
+            },
         }
     }
 }

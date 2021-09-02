@@ -1,3 +1,6 @@
+use std::borrow::BorrowMut;
+use std::vec;
+
 use crate::ast::{Expression, Infix, Prefix, Statement};
 use crate::environment::Environment;
 use crate::object::Object;
@@ -42,15 +45,53 @@ impl Interpreter {
                     let nested_env = Environment::extend(self.env.clone());
                     self.execute_block(stmts, nested_env);
                 }
+                Statement::If(cond, then, alt) => match alt {
+                    Some(alt) => {
+                        self.evaluate_if_statement(*cond, *then, Some(*alt));
+                    }
+                    None => {
+                        self.evaluate_if_statement(*cond, *then, None);
+                    }
+                },
             }
         }
 
         Ok(())
     }
 
+    fn is_truthy(&self, val: Object) -> bool {
+        match val {
+            Object::Nil => false,
+            Object::Boolean(false) => false,
+            Object::Boolean(true) => true,
+            _ => true,
+        }
+    }
+
+    fn evaluate_if_statement(&mut self, cond: Expression, then: Statement, alt: Option<Statement>) {
+        let evaluated = self.evaluate_expression(cond).unwrap();
+        let mut statements = vec![];
+
+        match self.is_truthy(evaluated) {
+            true => {
+                statements.push(then);
+                self.evaluate(statements);
+            }
+            false => {
+                if let Some(alt) = alt {
+                    statements.push(alt);
+                }
+
+                self.evaluate(statements);
+            }
+        }
+    }
+
     fn execute_block(&mut self, statements: Vec<Statement>, env: Environment) {
+        let previous_env = self.env.clone();
         self.env = env;
         let _ = self.evaluate(statements);
+        self.env = previous_env;
     }
 
     fn evaluate_print_statement(&mut self, expr: Expression) {

@@ -93,13 +93,7 @@ fn test_run_file() {
 #[test]
 fn test_evaluation() {
     let input = "print 1 + 2;";
-    let mut scanner = Scanner::new(input);
-    let tokens = scanner.scan_tokens().unwrap();
-    let mut iter = tokens.into_iter().peekable();
-    let mut parser = Parser::new(&mut iter);
-    let ast = parser.parse().unwrap();
-    let mut interpreter = Interpreter::new();
-    interpreter.evaluate(ast).unwrap();
+    test_call_interpreter(input);
 
     // assert_eq!(result, Object::Number(18));
 }
@@ -107,30 +101,61 @@ fn test_evaluation() {
 #[test]
 fn test_evaluation_with_var_declaration() {
     let input = "var a = 10;\nvar b = 20;\nprint a * b;";
-    let mut scanner = Scanner::new(input);
-    let tokens = scanner.scan_tokens().unwrap();
-    let mut iter = tokens.into_iter().peekable();
-    let mut parser = Parser::new(&mut iter);
-    let ast = parser.parse().unwrap();
-    let mut interpreter = Interpreter::new();
-    interpreter.evaluate(ast).unwrap();
+    test_call_interpreter(input);
 }
 
 #[test]
 fn test_evaluation_with_var_assignment() {
     let input = "var a = 10;\nprint a = 25";
-    let mut scanner = Scanner::new(input);
-    let tokens = scanner.scan_tokens().unwrap();
-    let mut iter = tokens.into_iter().peekable();
-    let mut parser = Parser::new(&mut iter);
-    let ast = parser.parse().unwrap();
-    let mut interpreter = Interpreter::new();
-    interpreter.evaluate(ast).unwrap();
+    test_call_interpreter(input);
 }
 
 #[test]
 fn test_block_scope() {
-    let input = "var a = \"global a\";\nvar b = \"global b\";\nvar c = \"global c\";\n{\nvar a = \"outer a\";\nvar b = \"outer b\";\n{\nvar a = \"inner a\";\nprint a;\nprint b;\n print c;\n}\n}";
+    let input = String::from(
+        r#"
+        var a = "global a";
+        var b = "global b";
+        var c = "global c";
+        {
+            var a = "outer a";
+            var b = "outer b";
+            {
+                var a = "inner a";
+                print a;
+                print b;
+                print c;
+            }
+            print a;
+            print b;
+            print c;
+        }
+        print a;
+        print b;
+        print c;
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
+#[test]
+fn test_if_statement() {
+    let input = String::from(
+        r#"
+        if (1 > 3) {
+            print "2 is greater than 1";
+        } else {
+            var a = 3;
+            print a;
+        }
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
+fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();
     let mut iter = tokens.into_iter().peekable();
