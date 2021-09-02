@@ -89,21 +89,21 @@ impl<'a> Parser<'a> {
         let condition = self.expression()?;
 
         self.tokens.next(); // consume the ')'
-        let thenBranch = self.statement()?;
+        let then_branch = self.statement()?;
 
         match self.tokens.peek() {
             Some(Token::ELSE) => {
                 self.tokens.next(); // consume the 'else'
-                let elseBranch = self.statement()?;
+                let else_branch = self.statement()?;
                 Ok(Statement::If(
                     Box::new(condition),
-                    Box::new(thenBranch),
-                    Some(Box::new(elseBranch)),
+                    Box::new(then_branch),
+                    Some(Box::new(else_branch)),
                 ))
             }
             _ => Ok(Statement::If(
                 Box::new(condition),
-                Box::new(thenBranch),
+                Box::new(then_branch),
                 None,
             )),
         }
