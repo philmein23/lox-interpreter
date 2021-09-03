@@ -59,7 +59,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn is_truthy(&self, val: Object) -> bool {
+    fn is_truthy(&self, val: &Object) -> bool {
         match val {
             Object::Nil => false,
             Object::Boolean(false) => false,
@@ -72,7 +72,7 @@ impl Interpreter {
         let evaluated = self.evaluate_expression(cond).unwrap();
         let mut statements = vec![];
 
-        match self.is_truthy(evaluated) {
+        match self.is_truthy(&evaluated) {
             true => {
                 statements.push(then);
                 self.evaluate(statements);
@@ -117,6 +117,11 @@ impl Interpreter {
             Expression::Variable(name) => {
                 let value = self.env.get(&name).unwrap();
                 Ok(value)
+            }
+            Expression::Logical(left, logical_op, right) => {
+                let left = self.evaluate_expression(*left)?;
+                let right = self.evaluate_expression(*right)?;
+                self.eval_infix_expression(logical_op, left, right)
             }
             Expression::Assign(name, expr) => {
                 let value = self.evaluate_expression(*expr)?;
@@ -209,6 +214,20 @@ impl Interpreter {
             },
             Infix::BANG_EQUAL => Ok(Object::Boolean(!(left == right))),
             Infix::EQUAL_EQUAL => Ok(Object::Boolean(left == right)),
+            Infix::AND => {
+                if !self.is_truthy(&left) {
+                    return Ok(left);
+                }
+
+                Ok(right)
+            }
+            Infix::OR => {
+                if self.is_truthy(&left) {
+                    return Ok(left);
+                }
+
+                Ok(right)
+            }
         }
     }
 }

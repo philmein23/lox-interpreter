@@ -155,6 +155,23 @@ fn test_if_statement() {
     test_call_interpreter(input.as_str());
 }
 
+#[test]
+fn test_if_logical_operator() {
+    let input = String::from(
+        r#"
+        if (false and 9) {
+            var a = 3 and 9;
+            print a;
+        } else {
+            var b = 3 or 1;
+            print b;
+        }
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();

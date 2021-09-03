@@ -44,6 +44,7 @@ pub enum Expression {
     Boolean(bool),
     Variable(String),
     Assign(String, Box<Expression>),
+    Logical(Box<Expression>, Infix, Box<Expression>),
     Nil,
 }
 
@@ -73,6 +74,9 @@ impl Display for Expression {
             }
             Expression::Assign(name, expr) => {
                 write!(f, "{} = {}", name, expr)
+            }
+            Expression::Logical(left, logical_op, right) => {
+                write!(f, "({} {} {})", logical_op, left, right)
             }
             Expression::Nil => {
                 write!(f, "nil")
@@ -108,6 +112,8 @@ pub enum Infix {
     GREATER_EQUAL,
     LESS,
     LESS_EQUAL,
+    AND,
+    OR,
 }
 
 impl Display for Infix {
@@ -123,6 +129,8 @@ impl Display for Infix {
             Infix::GREATER_EQUAL => write!(f, ">="),
             Infix::LESS => write!(f, "<"),
             Infix::LESS_EQUAL => write!(f, "<="),
+            Infix::AND => write!(f, "and"),
+            Infix::OR => write!(f, "or"),
         }
     }
 }

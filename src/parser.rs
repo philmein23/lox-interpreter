@@ -132,7 +132,7 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment(&mut self) -> Result<Expression, ParseError> {
-        let expr = self.equality();
+        let expr = self.or();
 
         if let Some(Token::EQUAL) = self.tokens.peek() {
             self.tokens.next(); // consume the '='
@@ -148,6 +148,40 @@ impl<'a> Parser<'a> {
         }
 
         expr
+    }
+
+    fn or(&mut self) -> Result<Expression, ParseError> {
+        let mut expr = self.and()?;
+
+        loop {
+            if let Some(Token::OR) = self.tokens.peek() {
+                self.tokens.next(); // consume the 'or'
+                let op = Infix::OR;
+                let right = self.and()?;
+                expr = Expression::Logical(Box::new(expr), op, Box::new(right))
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<Expression, ParseError> {
+        let mut expr = self.equality()?;
+
+        loop {
+            if let Some(Token::AND) = self.tokens.peek() {
+                self.tokens.next(); // consume the 'or'
+                let op = Infix::AND;
+                let right = self.equality()?;
+                expr = Expression::Logical(Box::new(expr), op, Box::new(right))
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expression, ParseError> {
