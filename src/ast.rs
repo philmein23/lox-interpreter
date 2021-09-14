@@ -8,6 +8,7 @@ pub enum Statement {
     Var(String, Option<Box<Expression>>),
     Block(Vec<Statement>),
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
+    While(Box<Expression>, Box<Statement>),
 }
 
 impl Display for Statement {
@@ -30,6 +31,9 @@ impl Display for Statement {
                 Some(e) => write!(f, "if ({}) {}\n else {}", cond, then, e),
                 None => write!(f, "if ({}) {}", cond, then),
             },
+            Statement::While(cond, body) => {
+                write!(f, "while ({}) {}", cond, body)
+            }
         }
     }
 }

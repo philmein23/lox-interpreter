@@ -68,6 +68,7 @@ impl<'a> Parser<'a> {
             Some(Token::IF) => self.if_statement(),
             Some(Token::LEFT_BRACE) => self.block(),
             Some(Token::PRINT) => self.print_statement(),
+            Some(Token::WHILE) => self.while_statement(),
             _ => self.expression_statement(),
         }
     }
@@ -80,6 +81,19 @@ impl<'a> Parser<'a> {
         let expr = self.expression()?;
         self.tokens.next(); // consume the ';'
         Ok(Statement::Expression(Box::new(expr)))
+    }
+
+    fn while_statement(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // consume the 'while'
+        self.tokens.next(); // consume the '('
+
+        let condition = self.expression()?;
+
+        self.tokens.next(); // consume the ')';
+
+        let body = self.statement()?;
+
+        Ok(Statement::While(Box::new(condition), Box::new(body)))
     }
 
     fn if_statement(&mut self) -> Result<Statement, ParseError> {

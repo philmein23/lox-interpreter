@@ -1,4 +1,5 @@
 use std::borrow::BorrowMut;
+use std::collections::vec_deque;
 use std::vec;
 
 use crate::ast::{Expression, Infix, Prefix, Statement};
@@ -53,6 +54,9 @@ impl Interpreter {
                         self.evaluate_if_statement(*cond, *then, None);
                     }
                 },
+                Statement::While(cond, body) => {
+                    self.evaluate_while_statement(*cond, *body);
+                }
             }
         }
 
@@ -65,6 +69,21 @@ impl Interpreter {
             Object::Boolean(false) => false,
             Object::Boolean(true) => true,
             _ => true,
+        }
+    }
+
+    fn evaluate_while_statement(&mut self, cond: Expression, body: Statement) {
+        let evaluated = self.evaluate_expression(cond).unwrap();
+        let mut statements = &mut vec![];
+        let ref_body = &body;
+
+        loop {
+            if self.is_truthy(&evaluated) {
+                statements.push(ref_body);
+                self.evaluate(statements);
+            } else {
+                break;
+            }
         }
     }
 
