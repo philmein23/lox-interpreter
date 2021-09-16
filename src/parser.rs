@@ -151,7 +151,6 @@ impl<'a> Parser<'a> {
         if let Some(Token::EQUAL) = self.tokens.peek() {
             self.tokens.next(); // consume the '='
             let value = self.assignment()?;
-
             if let Ok(Expression::Variable(name)) = expr {
                 return Ok(Expression::Assign(name, Box::new(value)));
             } else {

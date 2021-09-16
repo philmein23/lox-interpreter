@@ -172,6 +172,22 @@ fn test_if_logical_operator() {
     test_call_interpreter(input.as_str());
 }
 
+#[test]
+fn test_while_statement() {
+    let input = String::from(
+        r#"
+        var i = 0;
+        while (i < 5) {
+            print i;
+            i = i + 1;
+            print i;
+        };
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();

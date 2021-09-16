@@ -1,5 +1,4 @@
 use std::borrow::BorrowMut;
-use std::collections::vec_deque;
 use std::vec;
 
 use crate::ast::{Expression, Infix, Prefix, Statement};
@@ -55,7 +54,7 @@ impl Interpreter {
                     }
                 },
                 Statement::While(cond, body) => {
-                    self.evaluate_while_statement(*cond, *body);
+                    self.evaluate_while_statement(&*cond, &*body);
                 }
             }
         }
@@ -72,15 +71,14 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_while_statement(&mut self, cond: Expression, body: Statement) {
-        let evaluated = self.evaluate_expression(cond).unwrap();
-        let mut statements = &mut vec![];
-        let ref_body = &body;
-
+    fn evaluate_while_statement(&mut self, cond: &Expression, body: &Statement) {
         loop {
+            let evaluated = self.evaluate_expression(cond.to_owned()).unwrap();
+            let mut statements = vec![];
+
             if self.is_truthy(&evaluated) {
-                statements.push(ref_body);
-                self.evaluate(statements);
+                statements.push(body.to_owned());
+                let _ = self.evaluate(statements);
             } else {
                 break;
             }
@@ -110,7 +108,7 @@ impl Interpreter {
         let previous_env = self.env.clone();
         self.env = env;
         let _ = self.evaluate(statements);
-        self.env = previous_env;
+        // self.env = previous_env;
     }
 
     fn evaluate_print_statement(&mut self, expr: Expression) {
