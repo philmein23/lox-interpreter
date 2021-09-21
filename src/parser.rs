@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 use std::ptr::NonNull;
-use std::vec::IntoIter;
+use std::vec::{self, IntoIter};
 
 use crate::ast::{Expression, Infix, Prefix, Statement};
 use crate::token::Token;
@@ -69,12 +69,77 @@ impl<'a> Parser<'a> {
             Some(Token::LEFT_BRACE) => self.block(),
             Some(Token::PRINT) => self.print_statement(),
             Some(Token::WHILE) => self.while_statement(),
+            Some(Token::FOR) => self.for_statement(),
             _ => self.expression_statement(),
         }
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
         self.assignment()
+    }
+
+    fn for_statement(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // consume the 'for'
+        self.tokens.next(); // consume the '('
+
+        let initializer = match self.tokens.peek() {
+            Some(Token::SEMICOLON) => {
+                self.tokens.next(); // consume the ';'
+                None
+            }
+            Some(Token::VAR) => self.var_declaration().ok(),
+            _ => self.expression_statement().ok(),
+        };
+
+        self.tokens.next(); // consume the ';'
+
+        let mut condition = match self.tokens.peek() {
+            Some(Token::SEMICOLON) => {
+                self.tokens.next(); // consume the ';'
+                None
+            }
+            _ => {
+                let expr = self.expression().ok();
+                self.tokens.next(); // consume the ';'
+                expr
+            }
+        };
+
+        let increment = match self.tokens.peek() {
+            Some(Token::RIGHT_PAREN) => {
+                self.tokens.next(); // consume the ')'
+                None
+            }
+            _ => {
+                let expr = self.expression().ok();
+                self.tokens.next(); // consume the ')'
+                expr
+            }
+        };
+
+        let mut body = self.statement();
+
+        if let Some(expr) = increment {
+            body = Ok(Statement::Block(vec![
+                body?,
+                Statement::Expression(Box::new(expr)),
+            ]));
+        }
+
+        body = if let Some(cond) = condition {
+            Ok(Statement::While(Box::new(cond), Box::new(body?)))
+        } else {
+            Ok(Statement::While(
+                Box::new(Expression::Boolean(true)),
+                Box::new(body?),
+            ))
+        };
+
+        if let Some(init) = initializer {
+            body = Ok(Statement::Block(vec![init, body?]))
+        }
+
+        body
     }
 
     fn expression_statement(&mut self) -> Result<Statement, ParseError> {

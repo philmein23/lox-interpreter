@@ -47,6 +47,7 @@ impl Environment {
             }
             None => match &mut self.enclosing {
                 Some(env) => {
+                    println!("HERE!!");
                     env.as_mut().assign(name, value);
                 }
                 None => {}

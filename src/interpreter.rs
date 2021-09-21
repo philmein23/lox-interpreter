@@ -72,16 +72,11 @@ impl Interpreter {
     }
 
     fn evaluate_while_statement(&mut self, cond: &Expression, body: &Statement) {
-        loop {
-            let evaluated = self.evaluate_expression(cond.to_owned()).unwrap();
+        let evaluated = self.evaluate_expression(cond.to_owned()).unwrap();
+        while self.is_truthy(&evaluated) {
             let mut statements = vec![];
-
-            if self.is_truthy(&evaluated) {
-                statements.push(body.to_owned());
-                let _ = self.evaluate(statements);
-            } else {
-                break;
-            }
+            statements.push(body.to_owned());
+            let _ = self.evaluate(statements);
         }
     }
 
@@ -107,8 +102,9 @@ impl Interpreter {
     fn execute_block(&mut self, statements: Vec<Statement>, env: Environment) {
         let previous_env = self.env.clone();
         self.env = env;
-        let _ = self.evaluate(statements);
-        // self.env = previous_env;
+        let _ = self
+            .evaluate(statements)
+            .and_then(|_| Ok(self.env = previous_env));
     }
 
     fn evaluate_print_statement(&mut self, expr: Expression) {

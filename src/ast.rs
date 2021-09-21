@@ -8,7 +8,7 @@ pub enum Statement {
     Var(String, Option<Box<Expression>>),
     Block(Vec<Statement>),
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
-    While(Box<Expression>, Box<Statement>),
+    While(Box<Expression>, Box<Statement>,
 }
 
 impl Display for Statement {
