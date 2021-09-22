@@ -62,7 +62,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn is_truthy(&self, val: &Object) -> bool {
+    fn is_truthy(val: &Object) -> bool {
         match val {
             Object::Nil => false,
             Object::Boolean(false) => false,
@@ -72,8 +72,7 @@ impl Interpreter {
     }
 
     fn evaluate_while_statement(&mut self, cond: &Expression, body: &Statement) {
-        let evaluated = self.evaluate_expression(cond.to_owned()).unwrap();
-        while self.is_truthy(&evaluated) {
+        while Interpreter::is_truthy(&self.evaluate_expression(cond.to_owned()).unwrap()) {
             let mut statements = vec![];
             statements.push(body.to_owned());
             let _ = self.evaluate(statements);
@@ -84,7 +83,7 @@ impl Interpreter {
         let evaluated = self.evaluate_expression(cond).unwrap();
         let mut statements = vec![];
 
-        match self.is_truthy(&evaluated) {
+        match Interpreter::is_truthy(&evaluated) {
             true => {
                 statements.push(then);
                 self.evaluate(statements);
@@ -100,11 +99,14 @@ impl Interpreter {
     }
 
     fn execute_block(&mut self, statements: Vec<Statement>, env: Environment) {
-        let previous_env = self.env.clone();
         self.env = env;
-        let _ = self
-            .evaluate(statements)
-            .and_then(|_| Ok(self.env = previous_env));
+        let _ = self.evaluate(statements);
+
+        if let Some(enclosing) = self.env.enclosing.clone() {
+            self.env = *enclosing;
+        } else {
+            panic!("Impossible");
+        }
     }
 
     fn evaluate_print_statement(&mut self, expr: Expression) {
@@ -228,14 +230,14 @@ impl Interpreter {
             Infix::BANG_EQUAL => Ok(Object::Boolean(!(left == right))),
             Infix::EQUAL_EQUAL => Ok(Object::Boolean(left == right)),
             Infix::AND => {
-                if !self.is_truthy(&left) {
+                if !Interpreter::is_truthy(&left) {
                     return Ok(left);
                 }
 
                 Ok(right)
             }
             Infix::OR => {
-                if self.is_truthy(&left) {
+                if Interpreter::is_truthy(&left) {
                     return Ok(left);
                 }
 

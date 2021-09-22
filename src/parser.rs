@@ -1,5 +1,4 @@
 use std::iter::Peekable;
-use std::ptr::NonNull;
 use std::vec::{self, IntoIter};
 
 use crate::ast::{Expression, Infix, Prefix, Statement};

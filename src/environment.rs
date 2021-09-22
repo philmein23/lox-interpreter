@@ -5,7 +5,7 @@ use crate::object::Object;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Environment {
     values: HashMap<String, Object>,
-    enclosing: Option<Box<Environment>>,
+    pub enclosing: Option<Box<Environment>>,
 }
 
 impl Environment {
@@ -41,16 +41,13 @@ impl Environment {
     }
 
     pub fn assign(&mut self, name: String, value: Object) {
-        match self.values.get_mut(&name) {
-            Some(val) => {
-                *val = value;
-            }
-            None => match &mut self.enclosing {
-                Some(env) => {
-                    println!("HERE!!");
-                    env.as_mut().assign(name, value);
+        match self.values.contains_key(&name) {
+            true => self.define(name, value),
+            false => match &mut self.enclosing {
+                Some(enclosing) => {
+                    enclosing.assign(name, value);
                 }
-                None => {}
+                None => panic!("attempting to assign undeclared variable"),
             },
         }
     }
