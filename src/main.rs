@@ -188,6 +188,19 @@ fn test_while_statement() {
     test_call_interpreter(input.as_str());
 }
 
+#[test]
+fn test_for_statement() {
+    let input = String::from(
+        r#"
+        for (var i = 0; i < 10; i = i + 1) {
+            print i;
+        };
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();

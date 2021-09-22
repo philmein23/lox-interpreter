@@ -91,9 +91,7 @@ impl<'a> Parser<'a> {
             _ => self.expression_statement().ok(),
         };
 
-        self.tokens.next(); // consume the ';'
-
-        let mut condition = match self.tokens.peek() {
+        let condition = match self.tokens.peek() {
             Some(Token::SEMICOLON) => {
                 self.tokens.next(); // consume the ';'
                 None
