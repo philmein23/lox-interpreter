@@ -375,9 +375,50 @@ impl<'a> Parser<'a> {
                 Ok(Expression::Unary(Prefix::MINUS, Box::new(right)))
             }
 
-            _ => self.primary(),
+            _ => self.call(),
         };
         result
+    }
+
+    fn call(&mut self) -> Result<Expression, ParseError> {
+        let mut expr = self.primary()?;
+
+        loop {
+            match self.tokens.peek() {
+                Some(Token::LEFT_PAREN) => {
+                    self.tokens.next(); // consume the '('
+                    expr = self.finish_call(expr)?;
+                }
+                _ => break,
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expression) -> Result<Expression, ParseError> {
+        let mut args = vec![];
+
+        if let Some(token) = self.tokens.peek() {
+            if *token != Token::RIGHT_PAREN {
+                let boxed = Box::new(self.expression()?);
+                args.push(boxed);
+
+                while let Some(token) = self.tokens.peek() {
+                    if *token == Token::COMMA {
+                        self.tokens.next(); // consume the ','
+
+                        let boxed = Box::new(self.expression()?);
+                        args.push(boxed);
+                    } else {
+                        self.tokens.next(); // consume the ')'
+                        break;
+                    }
+                }
+            }
+        }
+
+        Ok(Expression::Call(Box::new(callee), args))
     }
 
     fn primary(&mut self) -> Result<Expression, ParseError> {

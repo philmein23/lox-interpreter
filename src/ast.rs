@@ -49,6 +49,7 @@ pub enum Expression {
     Variable(String),
     Assign(String, Box<Expression>),
     Logical(Box<Expression>, Infix, Box<Expression>),
+    Call(Box<Expression>, Vec<Box<Expression>>),
     Nil,
 }
 
@@ -81,6 +82,14 @@ impl Display for Expression {
             }
             Expression::Logical(left, logical_op, right) => {
                 write!(f, "({} {} {})", logical_op, left, right)
+            }
+            Expression::Call(callee, arguments) => {
+                let comma_joined: String = arguments
+                    .iter()
+                    .map(|arg| arg.to_string())
+                    .collect::<Vec<String>>()
+                    .join(",");
+                write!(f, "{}({})", callee, comma_joined)
             }
             Expression::Nil => {
                 write!(f, "nil")
