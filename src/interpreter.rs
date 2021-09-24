@@ -143,6 +143,12 @@ impl Interpreter {
                 self.env.assign(name, value.clone());
                 Ok(value)
             }
+            Expression::Call(callee, args) => {
+                let eval_args = args
+                    .iter()
+                    .map(|arg| self.evaluate_expression(*arg)?)
+                    .collect::<Vec<Object>>();
+            }
             Expression::Nil => Ok(Object::Nil),
             _ => Err(RuntimeError::InvalidSyntax),
         }

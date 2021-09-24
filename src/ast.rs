@@ -9,6 +9,7 @@ pub enum Statement {
     Block(Vec<Statement>),
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     While(Box<Expression>, Box<Statement>),
+    Function(String, Vec<String>, Vec<Statement>),
 }
 
 impl Display for Statement {
@@ -33,6 +34,14 @@ impl Display for Statement {
             },
             Statement::While(cond, body) => {
                 write!(f, "while ({}) {}", cond, body)
+            }
+            Statement::Function(name, params, body) => {
+                let params_joined = params.join(",");
+                write!(f, "fun {}({}) {{\n", name, params_joined)?;
+                for stmt in body {
+                    write!(f, "{}\n", stmt)?;
+                }
+                write!(f, "}}")
             }
         }
     }

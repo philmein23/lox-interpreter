@@ -32,6 +32,10 @@ impl<'a> Parser<'a> {
                 let stmt = self.var_declaration()?;
                 Ok(stmt)
             }
+            Some(Token::FUN) => {
+                let stmt = self.function()?;
+                Ok(stmt)
+            }
             _ => {
                 let stmt = self.statement()?;
                 Ok(stmt)
@@ -60,6 +64,57 @@ impl<'a> Parser<'a> {
             Some(initiator) => Ok(Statement::Var(name, Some(Box::new(initiator)))),
             None => Ok(Statement::Var(name, None)),
         }
+    }
+
+    fn function(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // consume the 'fun'
+
+        let name = match self.tokens.peek() {
+            Some(Token::IDENTIFIER(name)) => name.to_string(),
+            _ => {
+                return Err(ParseError::NewParseError(
+                    "Expected function identifier".into(),
+                ))
+            }
+        };
+        self.tokens.next(); // consume the identifier
+        self.tokens.next(); // consume the left paren
+
+        let params = vec![];
+
+        if let Some(token) = self.tokens.peek() {
+            if *token != Token::RIGHT_PAREN {
+                if let Token::IDENTIFIER(param) = token {
+                    params.push(param.to_string());
+                    self.tokens.next(); // consume the identifier
+                }
+
+                while let Some(token) = self.tokens.peek() {
+                    if *token == Token::COMMA {
+                        self.tokens.next(); // consume the ','
+
+                        if let Token::IDENTIFIER(param) = token {
+                            params.push(param.to_string());
+                            self.tokens.next(); // consume the identifier
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        self.tokens.next(); // consume the ')'
+
+        let mut body;
+        match self.block()? {
+            Statement::Block(stmts) => {
+                body = stmts;
+            }
+            _ => panic!("Expected block statement".to_string()),
+        };
+
+        Ok(Statement::Function(name, params, body))
     }
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
@@ -411,12 +466,12 @@ impl<'a> Parser<'a> {
                         let boxed = Box::new(self.expression()?);
                         args.push(boxed);
                     } else {
-                        self.tokens.next(); // consume the ')'
                         break;
                     }
                 }
             }
         }
+        self.tokens.next(); // consume the ')'
 
         Ok(Expression::Call(Box::new(callee), args))
     }
