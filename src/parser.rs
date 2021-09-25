@@ -84,21 +84,17 @@ impl<'a> Parser<'a> {
 
         if let Some(token) = self.tokens.peek() {
             if *token != Token::RIGHT_PAREN {
-                if let Token::IDENTIFIER(param) = token {
+                if let Some(Token::IDENTIFIER(param)) = self.tokens.peek() {
                     params.push(param.to_string());
                     self.tokens.next(); // consume the identifier
                 }
 
-                while let Some(token) = self.tokens.peek() {
-                    if *token == Token::COMMA {
-                        self.tokens.next(); // consume the ','
+                while let Some(Token::COMMA) = self.tokens.peek() {
+                    self.tokens.next(); // consume the ','
 
-                        if let Token::IDENTIFIER(param) = token {
-                            params.push(param.to_string());
-                            self.tokens.next(); // consume the identifier
-                        }
-                    } else {
-                        break;
+                    if let Some(Token::IDENTIFIER(param)) = self.tokens.peek() {
+                        params.push(param.to_string());
+                        self.tokens.next(); // consume the identifier
                     }
                 }
             }
@@ -459,15 +455,11 @@ impl<'a> Parser<'a> {
                 let boxed = Box::new(self.expression()?);
                 args.push(boxed);
 
-                while let Some(token) = self.tokens.peek() {
-                    if *token == Token::COMMA {
-                        self.tokens.next(); // consume the ','
+                while let Some(Token::COMMA) = self.tokens.peek() {
+                    self.tokens.next(); // consume the ','
 
-                        let boxed = Box::new(self.expression()?);
-                        args.push(boxed);
-                    } else {
-                        break;
-                    }
+                    let boxed = Box::new(self.expression()?);
+                    args.push(boxed);
                 }
             }
         }

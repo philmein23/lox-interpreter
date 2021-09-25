@@ -56,6 +56,7 @@ impl Interpreter {
                 Statement::While(cond, body) => {
                     self.evaluate_while_statement(&*cond, &*body);
                 }
+                Statement::Function(name, params, body) => {}
             }
         }
 
@@ -144,6 +145,7 @@ impl Interpreter {
                 Ok(value)
             }
             Expression::Call(callee, args) => {
+                let callee = self.evaluate_expression(*callee)?;
                 let eval_args = args
                     .iter()
                     .map(|arg| self.evaluate_expression(*arg)?)
