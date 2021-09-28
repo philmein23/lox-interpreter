@@ -200,6 +200,22 @@ fn test_for_statement() {
     test_call_interpreter(input.as_str());
 }
 
+#[test]
+fn test_function_call() {
+    let input = String::from(
+        r#"
+        fun testPrint(a, b) {
+            print a + a;
+            print b + a;
+        }
+
+        testPrint(1,2);
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();

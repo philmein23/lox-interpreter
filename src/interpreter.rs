@@ -1,4 +1,5 @@
-use std::borrow::BorrowMut;
+use std::collections::HashMap;
+use std::convert::TryInto;
 use std::vec;
 
 use crate::ast::{Expression, Infix, Prefix, Statement};
@@ -15,14 +16,51 @@ pub enum RuntimeError {
     InvalidNumberOfArgumentsForMethod,
 }
 
+trait LoxCallable {
+    fn arity(&self) -> u8;
+    fn call(&self, interpreter: &mut Interpreter, args: &[Object]) -> Result<Object, RuntimeError>;
+}
+
+#[derive(Clone, Debug)]
+struct LoxFunction {
+    name: String,
+    params: Vec<String>,
+    body: Vec<Statement>,
+}
+
+impl LoxFunction {
+    fn new(name: String, params: Vec<String>, body: Vec<Statement>) -> Self {
+        LoxFunction { name, params, body }
+    }
+}
+
+impl LoxCallable for LoxFunction {
+    fn arity(&self) -> u8 {
+        self.params.len().try_into().unwrap()
+    }
+
+    fn call(&self, interpreter: &mut Interpreter, args: &[Object]) -> Result<Object, RuntimeError> {
+        let mut new_env = Environment::new();
+        for (idx, param) in self.params.iter().enumerate() {
+            new_env.define(param.into(), args[idx].clone());
+        }
+
+        interpreter.execute_block(self.body.clone(), new_env);
+
+        Ok(Object::Nil)
+    }
+}
+
 pub struct Interpreter {
     env: Environment,
+    lox_functions: HashMap<String, LoxFunction>,
 }
 
 impl Interpreter {
     pub fn new() -> Interpreter {
         let env = Environment::new();
-        Interpreter { env }
+        let lox_functions = HashMap::new();
+        Interpreter { env, lox_functions }
     }
 
     pub fn evaluate(&mut self, stmts: Vec<Statement>) -> Result<(), RuntimeError> {
@@ -56,7 +94,12 @@ impl Interpreter {
                 Statement::While(cond, body) => {
                     self.evaluate_while_statement(&*cond, &*body);
                 }
-                Statement::Function(name, params, body) => {}
+                Statement::Function(name, params, body) => {
+                    let lox_function = LoxFunction::new(name.clone(), params, body);
+                    self.env
+                        .define(name.clone(), Object::Function(name.clone()));
+                    self.lox_functions.insert(name.clone(), lox_function);
+                }
             }
         }
 
@@ -148,8 +191,22 @@ impl Interpreter {
                 let callee = self.evaluate_expression(*callee)?;
                 let eval_args = args
                     .iter()
-                    .map(|arg| self.evaluate_expression(*arg)?)
+                    .map(|arg| self.evaluate_expression(*arg.clone()).unwrap())
                     .collect::<Vec<Object>>();
+
+                let mut value = Object::Nil;
+
+                if let Object::Function(name) = callee {
+                    match self.lox_functions.get(&name) {
+                        Some(f) => {
+                            let f = f.clone();
+                            value = f.call(self, &eval_args)?
+                        }
+                        None => panic!("There is no function with the name of {}", name),
+                    }
+                }
+
+                Ok(value)
             }
             Expression::Nil => Ok(Object::Nil),
             _ => Err(RuntimeError::InvalidSyntax),

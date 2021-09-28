@@ -80,7 +80,7 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // consume the identifier
         self.tokens.next(); // consume the left paren
 
-        let params = vec![];
+        let mut params = vec![];
 
         if let Some(token) = self.tokens.peek() {
             if *token != Token::RIGHT_PAREN {
@@ -109,6 +109,8 @@ impl<'a> Parser<'a> {
             }
             _ => panic!("Expected block statement".to_string()),
         };
+
+        println!("FUN {} {:?} {:?}", name, params, body);
 
         Ok(Statement::Function(name, params, body))
     }
