@@ -216,6 +216,23 @@ fn test_function_call() {
     test_call_interpreter(input.as_str());
 }
 
+#[test]
+fn test_function_return_call() {
+    let input = String::from(
+        r#"
+        fun testReturn(b) {
+            return b * b;
+        }
+
+        var test = testReturn(3);
+
+        print test;
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();

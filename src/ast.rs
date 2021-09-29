@@ -10,6 +10,7 @@ pub enum Statement {
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     While(Box<Expression>, Box<Statement>),
     Function(String, Vec<String>, Vec<Statement>),
+    Return(Box<Expression>),
 }
 
 impl Display for Statement {
@@ -42,6 +43,9 @@ impl Display for Statement {
                     write!(f, "{}\n", stmt)?;
                 }
                 write!(f, "}}")
+            }
+            Statement::Return(value) => {
+                write!(f, "return {}", value)
             }
         }
     }

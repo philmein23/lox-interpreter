@@ -110,8 +110,6 @@ impl<'a> Parser<'a> {
             _ => panic!("Expected block statement".to_string()),
         };
 
-        println!("FUN {} {:?} {:?}", name, params, body);
-
         Ok(Statement::Function(name, params, body))
     }
 
@@ -122,12 +120,26 @@ impl<'a> Parser<'a> {
             Some(Token::PRINT) => self.print_statement(),
             Some(Token::WHILE) => self.while_statement(),
             Some(Token::FOR) => self.for_statement(),
+            Some(Token::RETURN) => self.return_statement(),
             _ => self.expression_statement(),
         }
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
         self.assignment()
+    }
+
+    fn return_statement(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // consume the 'return'
+        let mut value = Expression::Nil;
+        if let Some(Token::SEMICOLON) = self.tokens.peek() {
+            self.tokens.next(); // consume the ; token
+        } else {
+            value = self.expression()?;
+            self.tokens.next(); // consume the ; token
+        }
+
+        Ok(Statement::Return(Box::new(value)))
     }
 
     fn for_statement(&mut self) -> Result<Statement, ParseError> {

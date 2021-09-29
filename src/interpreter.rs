@@ -44,23 +44,39 @@ impl LoxCallable for LoxFunction {
         for (idx, param) in self.params.iter().enumerate() {
             new_env.define(param.into(), args[idx].clone());
         }
+        // cache the original environment
+        let saved_env = interpreter.env.clone();
 
-        interpreter.execute_block(self.body.clone(), new_env);
+        // set the env to newly created function's environment
+        interpreter.env = new_env;
 
-        Ok(Object::Nil)
+        let _ = interpreter.evaluate(self.body.clone());
+
+        // after evaluating function's body, then reset env with the original environment
+        interpreter.env = saved_env;
+
+        let retval = interpreter.retval.clone();
+
+        Ok(retval.unwrap())
     }
 }
 
 pub struct Interpreter {
     env: Environment,
     lox_functions: HashMap<String, LoxFunction>,
+    retval: Option<Object>,
 }
 
 impl Interpreter {
     pub fn new() -> Interpreter {
         let env = Environment::new();
         let lox_functions = HashMap::new();
-        Interpreter { env, lox_functions }
+        let retval = None;
+        Interpreter {
+            env,
+            lox_functions,
+            retval,
+        }
     }
 
     pub fn evaluate(&mut self, stmts: Vec<Statement>) -> Result<(), RuntimeError> {
@@ -99,6 +115,13 @@ impl Interpreter {
                     self.env
                         .define(name.clone(), Object::Function(name.clone()));
                     self.lox_functions.insert(name.clone(), lox_function);
+                }
+                Statement::Return(maybe_value) => {
+                    self.retval = if *maybe_value != Expression::Nil {
+                        Some(self.evaluate_expression(*maybe_value)?)
+                    } else {
+                        Some(Object::Nil)
+                    };
                 }
             }
         }
