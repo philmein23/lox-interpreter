@@ -26,11 +26,17 @@ struct LoxFunction {
     name: String,
     params: Vec<String>,
     body: Vec<Statement>,
+    closure: Environment,
 }
 
 impl LoxFunction {
-    fn new(name: String, params: Vec<String>, body: Vec<Statement>) -> Self {
-        LoxFunction { name, params, body }
+    fn new(name: String, params: Vec<String>, body: Vec<Statement>, closure: Environment) -> Self {
+        LoxFunction {
+            name,
+            params,
+            body,
+            closure,
+        }
     }
 }
 
@@ -40,11 +46,12 @@ impl LoxCallable for LoxFunction {
     }
 
     fn call(&self, interpreter: &mut Interpreter, args: &[Object]) -> Result<Object, RuntimeError> {
-        let mut new_env = Environment::extend(interpreter.env.clone());
+        let closure = self.closure.clone();
+        let mut new_env = Environment::extend(closure);
         for (idx, param) in self.params.iter().enumerate() {
             new_env.define(param.into(), args[idx].clone());
         }
-        // cache the original environment
+        // cache the global environment
         let saved_env = interpreter.env.clone();
         let saved_retval = interpreter.retval.clone();
 
@@ -54,7 +61,7 @@ impl LoxCallable for LoxFunction {
         let _ = interpreter.evaluate(self.body.clone());
 
         let retval = interpreter.retval.clone();
-        // after evaluating function's body, then reset env with the original environment
+        // after evaluating function's body, then reset env with the global environment
         interpreter.env = saved_env;
         interpreter.retval = saved_retval;
 
@@ -116,9 +123,10 @@ impl Interpreter {
                     self.evaluate_while_statement(&*cond, &*body);
                 }
                 Statement::Function(name, params, body) => {
-                    let lox_function = LoxFunction::new(name.clone(), params, body);
                     self.env
                         .define(name.clone(), Object::Function(name.clone()));
+                    let lox_function =
+                        LoxFunction::new(name.clone(), params, body, self.env.clone());
                     self.lox_functions.insert(name.clone(), lox_function);
                 }
                 Statement::Return(maybe_value) => {
