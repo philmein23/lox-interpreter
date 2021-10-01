@@ -220,13 +220,32 @@ fn test_function_call() {
 fn test_function_return_call() {
     let input = String::from(
         r#"
-        fun testReturn(b) {
-            return b * b;
+        fun testReturn(a, b) {
+            return b * b * b;
         }
-
-        var test = testReturn(3);
+        var a = 5;
+        var test = testReturn(a + 3, a + 4);
 
         print test;
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
+#[test]
+fn test_fib() {
+    let input = String::from(
+        r#"
+        fun fib(n) {
+            if (n <= 1) return n;
+            return fib(n - 2) + fib(n - 1);
+        }
+
+        for (var i = 0; i < 20; i = i + 1) {
+            var a = fib(i);
+            print a;
+        }
         "#,
     );
 

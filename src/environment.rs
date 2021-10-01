@@ -33,6 +33,7 @@ impl Environment {
             None => match &self.enclosing {
                 Some(env) => {
                     let value = env.as_ref().get(name);
+                    // println!("FUN {:?}", value);
                     value
                 }
                 None => None,

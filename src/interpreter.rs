@@ -40,22 +40,23 @@ impl LoxCallable for LoxFunction {
     }
 
     fn call(&self, interpreter: &mut Interpreter, args: &[Object]) -> Result<Object, RuntimeError> {
-        let mut new_env = Environment::new();
+        let mut new_env = Environment::extend(interpreter.env.clone());
         for (idx, param) in self.params.iter().enumerate() {
             new_env.define(param.into(), args[idx].clone());
         }
         // cache the original environment
         let saved_env = interpreter.env.clone();
+        let saved_retval = interpreter.retval.clone();
 
         // set the env to newly created function's environment
         interpreter.env = new_env;
 
         let _ = interpreter.evaluate(self.body.clone());
 
+        let retval = interpreter.retval.clone();
         // after evaluating function's body, then reset env with the original environment
         interpreter.env = saved_env;
-
-        let retval = interpreter.retval.clone();
+        interpreter.retval = saved_retval;
 
         Ok(retval.unwrap())
     }
@@ -81,6 +82,10 @@ impl Interpreter {
 
     pub fn evaluate(&mut self, stmts: Vec<Statement>) -> Result<(), RuntimeError> {
         for stmt in stmts {
+            // the first return statement should immediately follow an exit out of the function call
+            if self.retval.is_some() {
+                return Ok(());
+            }
             match stmt {
                 Statement::Var(name, expr) => match expr {
                     Some(expr) => {
@@ -223,6 +228,7 @@ impl Interpreter {
                     match self.lox_functions.get(&name) {
                         Some(f) => {
                             let f = f.clone();
+
                             value = f.call(self, &eval_args)?
                         }
                         None => panic!("There is no function with the name of {}", name),

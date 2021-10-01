@@ -231,6 +231,7 @@ impl<'a> Parser<'a> {
 
         self.tokens.next(); // consume the ')'
         let then_branch = self.statement()?;
+        println!("THEN BRANCH {:?}", then_branch);
 
         match self.tokens.peek() {
             Some(Token::ELSE) => {
