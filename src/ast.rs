@@ -11,6 +11,7 @@ pub enum Statement {
     While(Box<Expression>, Box<Statement>),
     Function(String, Vec<String>, Vec<Statement>),
     Return(Box<Expression>),
+    Class(String, Vec<Statement>),
 }
 
 impl Display for Statement {
@@ -46,6 +47,13 @@ impl Display for Statement {
             }
             Statement::Return(value) => {
                 write!(f, "return {}", value)
+            }
+            Statement::Class(name, methods) => {
+                write!(f, "class {} {{\n", name)?;
+                for method in methods {
+                    write!(f, "{}\n", method)?;
+                }
+                write!(f, "}}")
             }
         }
     }

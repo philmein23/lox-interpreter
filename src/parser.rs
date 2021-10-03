@@ -33,7 +33,12 @@ impl<'a> Parser<'a> {
                 Ok(stmt)
             }
             Some(Token::FUN) => {
+                self.tokens.next(); // consume the 'fun' token
                 let stmt = self.function()?;
+                Ok(stmt)
+            }
+            Some(Token::CLASS) => {
+                let stmt = self.class_declaration()?;
                 Ok(stmt)
             }
             _ => {
@@ -41,6 +46,36 @@ impl<'a> Parser<'a> {
                 Ok(stmt)
             }
         }
+    }
+
+    fn class_declaration(&mut self) -> Result<Statement, ParseError> {
+        let name = match self.tokens.peek() {
+            Some(Token::IDENTIFIER(name)) => name.to_string(),
+            _ => {
+                return Err(ParseError::NewParseError(
+                    "Expected function identifier".into(),
+                ))
+            }
+        };
+
+        self.tokens.next(); // consume the '{' token
+
+        let mut methods = vec![];
+
+        loop {
+            if let Some(token) = self.tokens.peek() {
+                if *token != Token::RIGHT_BRACE {
+                    let method = self.function()?;
+                    methods.push(method);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        self.tokens.next(); // consume the '}' token
+
+        Ok(Statement::Class(name, methods))
     }
 
     fn var_declaration(&mut self) -> Result<Statement, ParseError> {
@@ -67,8 +102,6 @@ impl<'a> Parser<'a> {
     }
 
     fn function(&mut self) -> Result<Statement, ParseError> {
-        self.tokens.next(); // consume the 'fun'
-
         let name = match self.tokens.peek() {
             Some(Token::IDENTIFIER(name)) => name.to_string(),
             _ => {
@@ -102,7 +135,7 @@ impl<'a> Parser<'a> {
 
         self.tokens.next(); // consume the ')'
 
-        let mut body;
+        let body;
         match self.block()? {
             Statement::Block(stmts) => {
                 body = stmts;

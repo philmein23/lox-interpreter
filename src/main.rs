@@ -252,6 +252,27 @@ fn test_fib() {
     test_call_interpreter(input.as_str());
 }
 
+#[test]
+fn test_closure() {
+    let input = String::from(
+        r#"
+        fun test(n) {
+            var a = n;
+            fun printIt() {
+                print a * a;
+            }
+
+            return printIt;
+        }
+
+        var toPrint = test(12);
+        toPrint();
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();

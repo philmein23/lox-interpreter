@@ -65,7 +65,7 @@ impl LoxCallable for LoxFunction {
         interpreter.env = saved_env;
         interpreter.retval = saved_retval;
 
-        Ok(retval.unwrap())
+        Ok(retval.unwrap_or_else(|| Object::Nil))
     }
 }
 
