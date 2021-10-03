@@ -69,9 +69,20 @@ impl LoxCallable for LoxFunction {
     }
 }
 
+struct LoxClass {
+    name: String,
+}
+
+impl LoxClass {
+    fn new(name: String) -> Self {
+        LoxClass { name }
+    }
+}
+
 pub struct Interpreter {
     env: Environment,
     lox_functions: HashMap<String, LoxFunction>,
+    lox_classes: HashMap<String, LoxClass>,
     retval: Option<Object>,
 }
 
@@ -79,10 +90,12 @@ impl Interpreter {
     pub fn new() -> Interpreter {
         let env = Environment::new();
         let lox_functions = HashMap::new();
+        let lox_classes = HashMap::new();
         let retval = None;
         Interpreter {
             env,
             lox_functions,
+            lox_classes,
             retval,
         }
     }
@@ -121,6 +134,11 @@ impl Interpreter {
                 },
                 Statement::While(cond, body) => {
                     self.evaluate_while_statement(&*cond, &*body);
+                }
+                Statement::Class(name, methods) => {
+                    self.env.define(name.clone(), Object::Class(name.clone()));
+                    let lox_class = LoxClass::new(name.clone());
+                    self.lox_classes.insert(name.clone(), lox_class);
                 }
                 Statement::Function(name, params, body) => {
                     self.env
