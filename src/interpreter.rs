@@ -325,6 +325,7 @@ impl Interpreter {
             Expression::Get(object, property) => {
                 // var obj = TestClass();
                 // obj.getProp;
+                // or TestClass().someProp;
                 let obj = self.evaluate_expression(*object)?;
 
                 match obj {

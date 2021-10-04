@@ -491,12 +491,10 @@ impl<'a> Parser<'a> {
                 Some(Token::DOT) => {
                     // someObject.age;
                     self.tokens.next(); // consume the '.' token
-                    let name;
                     if let Some(Token::IDENTIFIER(iden)) = self.tokens.peek() {
-                        self.tokens.next(); // consume the 'iden' token
-                        name = *iden;
+                        expr = Expression::Get(Box::new(expr), iden.to_owned());
                     }
-                    expr = Expression::Get(Box::new(expr), name);
+                    self.tokens.next(); // consume the 'iden' token
                 }
                 _ => break,
             }
