@@ -264,7 +264,6 @@ impl<'a> Parser<'a> {
 
         self.tokens.next(); // consume the ')'
         let then_branch = self.statement()?;
-        println!("THEN BRANCH {:?}", then_branch);
 
         match self.tokens.peek() {
             Some(Token::ELSE) => {
@@ -312,13 +311,14 @@ impl<'a> Parser<'a> {
         if let Some(Token::EQUAL) = self.tokens.peek() {
             self.tokens.next(); // consume the '='
             let value = self.assignment()?;
-            if let Ok(Expression::Variable(name)) = expr {
-                return Ok(Expression::Assign(name, Box::new(value)));
-            } else {
-                return Err(ParseError::NewParseError(
+            let expr = expr.clone();
+            match expr {
+                Ok(Expression::Variable(name)) => Ok(Expression::Assign(name, Box::new(value))),
+                Ok(Expression::Get(obj, prop)) => Ok(Expression::Set(obj, prop, Box::new(value))),
+                _ => Err(ParseError::NewParseError(
                     "Invalid assignment target".into(),
-                ));
-            }
+                )),
+            };
         }
 
         expr

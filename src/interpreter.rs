@@ -113,6 +113,9 @@ impl LoxInstance {
             None
         }
     }
+    fn set(&mut self, prop: String, value: Object) {
+        self.fields.insert(prop, value);
+    }
 }
 
 pub struct Interpreter {
@@ -332,6 +335,24 @@ impl Interpreter {
                     Object::LoxInstance(_, id) => {
                         let instance = self.lox_instances.get(&id).map(|i| i.to_owned()).unwrap();
                         let value = instance.get(property).unwrap();
+                        Ok(value)
+                    }
+                    _ => Err(RuntimeError::NewRuntimeError(format!(
+                        "Object with property {} does not exist",
+                        property
+                    ))),
+                }
+            }
+            Expression::Set(object, property, value) => {
+                // obj.someProp = 13;
+                let obj = self.evaluate_expression(*object)?;
+                let value = self.evaluate_expression(*value)?;
+
+                match obj {
+                    Object::LoxInstance(_, id) => {
+                        let mut instance =
+                            self.lox_instances.get(&id).map(|i| i.to_owned()).unwrap();
+                        instance.set(property, value.clone());
                         Ok(value)
                     }
                     _ => Err(RuntimeError::NewRuntimeError(format!(
