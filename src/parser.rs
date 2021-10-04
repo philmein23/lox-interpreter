@@ -57,7 +57,7 @@ impl<'a> Parser<'a> {
                 ))
             }
         };
-
+        self.tokens.next(); // consume the identifier token
         self.tokens.next(); // consume the '{' token
 
         let mut methods = vec![];
@@ -485,8 +485,18 @@ impl<'a> Parser<'a> {
         loop {
             match self.tokens.peek() {
                 Some(Token::LEFT_PAREN) => {
-                    self.tokens.next(); // consume the '('
+                    self.tokens.next(); // consume the '(' token
                     expr = self.finish_call(expr)?;
+                }
+                Some(Token::DOT) => {
+                    // someObject.age;
+                    self.tokens.next(); // consume the '.' token
+                    let name;
+                    if let Some(Token::IDENTIFIER(iden)) = self.tokens.peek() {
+                        self.tokens.next(); // consume the 'iden' token
+                        name = *iden;
+                    }
+                    expr = Expression::Get(Box::new(expr), name);
                 }
                 _ => break,
             }

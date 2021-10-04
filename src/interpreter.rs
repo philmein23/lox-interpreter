@@ -69,6 +69,7 @@ impl LoxCallable for LoxFunction {
     }
 }
 
+#[derive(Clone, Debug)]
 struct LoxClass {
     name: String,
 }
@@ -79,25 +80,71 @@ impl LoxClass {
     }
 }
 
+impl LoxCallable for LoxClass {
+    fn arity(&self) -> u8 {
+        0
+    }
+    fn call(&self, interpreter: &mut Interpreter, args: &[Object]) -> Result<Object, RuntimeError> {
+        let insta_id = interpreter.alloc_id();
+        let instance = LoxInstance::new(self.name.clone());
+        interpreter.lox_instances.insert(insta_id, instance);
+
+        Ok(Object::LoxInstance(self.name.clone(), insta_id))
+    }
+}
+
+#[derive(Clone, Debug)]
+struct LoxInstance {
+    class_name: String,
+    fields: HashMap<String, Object>,
+}
+
+impl LoxInstance {
+    fn new(class_name: String) -> Self {
+        let fields = HashMap::new();
+        LoxInstance { class_name, fields }
+    }
+
+    fn get(&self, prop: String) -> Option<Object> {
+        if self.fields.contains_key(&prop) {
+            let value = self.fields.get(&prop).map(|o| o.to_owned());
+            value
+        } else {
+            None
+        }
+    }
+}
+
 pub struct Interpreter {
     env: Environment,
-    lox_functions: HashMap<String, LoxFunction>,
-    lox_classes: HashMap<String, LoxClass>,
+    lox_functions: HashMap<u64, LoxFunction>,
+    lox_instances: HashMap<u64, LoxInstance>,
+    lox_classes: HashMap<u64, LoxClass>,
     retval: Option<Object>,
+    counter: u64,
 }
 
 impl Interpreter {
     pub fn new() -> Interpreter {
         let env = Environment::new();
         let lox_functions = HashMap::new();
+        let lox_instances = HashMap::new();
         let lox_classes = HashMap::new();
         let retval = None;
         Interpreter {
             env,
             lox_functions,
+            lox_instances,
             lox_classes,
             retval,
+            counter: 0,
         }
+    }
+
+    fn alloc_id(&mut self) -> u64 {
+        let id = self.counter;
+        self.counter += 1;
+        id
     }
 
     pub fn evaluate(&mut self, stmts: Vec<Statement>) -> Result<(), RuntimeError> {
@@ -136,16 +183,19 @@ impl Interpreter {
                     self.evaluate_while_statement(&*cond, &*body);
                 }
                 Statement::Class(name, methods) => {
-                    self.env.define(name.clone(), Object::Class(name.clone()));
+                    let class_id = self.alloc_id();
+                    self.env
+                        .define(name.clone(), Object::LoxClass(name.clone(), class_id));
                     let lox_class = LoxClass::new(name.clone());
-                    self.lox_classes.insert(name.clone(), lox_class);
+                    self.lox_classes.insert(class_id, lox_class);
                 }
                 Statement::Function(name, params, body) => {
+                    let func_id = self.alloc_id();
                     self.env
-                        .define(name.clone(), Object::Function(name.clone()));
+                        .define(name.clone(), Object::LoxFunction(name.clone(), func_id));
                     let lox_function =
                         LoxFunction::new(name.clone(), params, body, self.env.clone());
-                    self.lox_functions.insert(name.clone(), lox_function);
+                    self.lox_functions.insert(func_id, lox_function);
                 }
                 Statement::Return(maybe_value) => {
                     self.retval = if *maybe_value != Expression::Nil {
@@ -250,18 +300,44 @@ impl Interpreter {
 
                 let mut value = Object::Nil;
 
-                if let Object::Function(name) = callee {
-                    match self.lox_functions.get(&name) {
+                match callee {
+                    Object::LoxFunction(name, func_id) => match self.lox_functions.get(&func_id) {
                         Some(f) => {
                             let f = f.clone();
 
                             value = f.call(self, &eval_args)?
                         }
                         None => panic!("There is no function with the name of {}", name),
-                    }
+                    },
+                    Object::LoxClass(class_name, class_id) => match self.lox_classes.get(&class_id)
+                    {
+                        Some(class) => {
+                            let class = class.clone();
+                            value = class.call(self, &eval_args)?;
+                        }
+                        None => panic!("There is no class with the name of {}", class_name,),
+                    },
+                    _ => panic!("Callee with the name of {} does not exist", callee,),
                 }
 
                 Ok(value)
+            }
+            Expression::Get(object, property) => {
+                // var obj = TestClass();
+                // obj.getProp;
+                let obj = self.evaluate_expression(*object)?;
+
+                match obj {
+                    Object::LoxInstance(_, id) => {
+                        let instance = self.lox_instances.get(&id).map(|i| i.to_owned()).unwrap();
+                        let value = instance.get(property).unwrap();
+                        Ok(value)
+                    }
+                    _ => Err(RuntimeError::NewRuntimeError(format!(
+                        "Object with property {} does not exist",
+                        property
+                    ))),
+                }
             }
             Expression::Nil => Ok(Object::Nil),
             _ => Err(RuntimeError::InvalidSyntax),

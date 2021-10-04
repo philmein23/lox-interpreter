@@ -71,6 +71,7 @@ pub enum Expression {
     Assign(String, Box<Expression>),
     Logical(Box<Expression>, Infix, Box<Expression>),
     Call(Box<Expression>, Vec<Box<Expression>>),
+    Get(Box<Expression>, String),
     Nil,
 }
 
@@ -111,6 +112,9 @@ impl Display for Expression {
                     .collect::<Vec<String>>()
                     .join(",");
                 write!(f, "{}({})", callee, comma_joined)
+            }
+            Expression::Get(object, iden) => {
+                write!(f, "{}.{}", object, iden)
             }
             Expression::Nil => {
                 write!(f, "nil")

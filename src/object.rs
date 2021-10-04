@@ -6,8 +6,9 @@ pub enum Object {
     Boolean(bool),
     Number(i64),
     String(String),
-    Function(String),
-    Class(String),
+    LoxFunction(String, u64),
+    LoxClass(String, u64),
+    LoxInstance(String, u64),
 }
 
 impl Display for Object {
@@ -17,8 +18,9 @@ impl Display for Object {
             Object::Boolean(b) => write!(f, "{}", b),
             Object::Number(n) => write!(f, "{}", n),
             Object::String(s) => write!(f, "{}", s),
-            Object::Function(s) => write!(f, "{}", s),
-            Object::Class(s) => write!(f, "{}", s),
+            Object::LoxFunction(s, _) => write!(f, "{}", s),
+            Object::LoxClass(s, _) => write!(f, "{}", s),
+            Object::LoxInstance(s, _) => write!(f, "{}", s),
         }
     }
 }
