@@ -72,11 +72,12 @@ impl LoxCallable for LoxFunction {
 #[derive(Clone, Debug)]
 struct LoxClass {
     name: String,
+    methods: HashMap<String, LoxFunction>,
 }
 
 impl LoxClass {
-    fn new(name: String) -> Self {
-        LoxClass { name }
+    fn new(name: String, methods: HashMap<String, LoxFunction>) -> Self {
+        LoxClass { name, methods }
     }
 }
 
@@ -184,7 +185,15 @@ impl Interpreter {
                     let class_id = self.alloc_id();
                     self.env
                         .define(name.clone(), Object::LoxClass(name.clone(), class_id));
-                    let lox_class = LoxClass::new(name.clone());
+                    let mut methods_map: HashMap<String, LoxFunction> = HashMap::new();
+                    for method in methods {
+                        if let Statement::Function(name, params, body) = method {
+                            let lox_function =
+                                LoxFunction::new(name.clone(), params, body, self.env.clone());
+                            methods_map.insert(name.clone(), lox_function);
+                        }
+                    }
+                    let lox_class = LoxClass::new(name.clone(), methods_map);
                     self.lox_classes.insert(class_id, lox_class);
                 }
                 Statement::Function(name, params, body) => {
