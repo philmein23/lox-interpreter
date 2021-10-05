@@ -105,13 +105,8 @@ impl LoxInstance {
         LoxInstance { class_name, fields }
     }
 
-    fn get(&self, prop: String) -> Option<Object> {
-        if self.fields.contains_key(&prop) {
-            let value = self.fields.get(&prop).map(|o| o.to_owned());
-            value
-        } else {
-            None
-        }
+    fn get(&self, prop: String) -> Option<&Object> {
+        self.fields.get(&prop)
     }
     fn set(&mut self, prop: String, value: Object) {
         self.fields.insert(prop, value);
@@ -335,7 +330,7 @@ impl Interpreter {
                     Object::LoxInstance(_, id) => {
                         let instance = self.lox_instances.get(&id).map(|i| i.to_owned()).unwrap();
                         let value = instance.get(property).unwrap();
-                        Ok(value)
+                        Ok(value.clone())
                     }
                     _ => Err(RuntimeError::NewRuntimeError(format!(
                         "Object with property {} does not exist",
@@ -347,11 +342,9 @@ impl Interpreter {
                 // obj.someProp = 13;
                 let obj = self.evaluate_expression(*object)?;
                 let value = self.evaluate_expression(*value)?;
-
                 match obj {
                     Object::LoxInstance(_, id) => {
-                        let mut instance =
-                            self.lox_instances.get(&id).map(|i| i.to_owned()).unwrap();
+                        let instance = self.lox_instances.get_mut(&id).unwrap();
                         instance.set(property, value.clone());
                         Ok(value)
                     }

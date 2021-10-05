@@ -163,7 +163,7 @@ fn test_if_logical_operator() {
             var a = 3 and 9;
             print a;
         } else {
-            var b = 3 or 1;
+            var b = 9 or 1;
             print b;
         }
         "#,
@@ -267,6 +267,26 @@ fn test_closure() {
 
         var toPrint = test(12);
         toPrint();
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
+#[test]
+fn test_class() {
+    let input = String::from(
+        r#"
+        class Person {
+            getAge() {
+                return 2;
+            }
+        }
+
+        var instance = Person();
+        instance.age = 45;
+        print instance.age;
+
         "#,
     );
 

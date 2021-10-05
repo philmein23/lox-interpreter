@@ -49,6 +49,7 @@ impl<'a> Parser<'a> {
     }
 
     fn class_declaration(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // consume the 'class' token
         let name = match self.tokens.peek() {
             Some(Token::IDENTIFIER(name)) => name.to_string(),
             _ => {
@@ -59,7 +60,6 @@ impl<'a> Parser<'a> {
         };
         self.tokens.next(); // consume the identifier token
         self.tokens.next(); // consume the '{' token
-
         let mut methods = vec![];
 
         loop {
@@ -312,13 +312,15 @@ impl<'a> Parser<'a> {
             self.tokens.next(); // consume the '='
             let value = self.assignment()?;
             let expr = expr.clone();
-            match expr {
+            let ret_expr = match expr {
                 Ok(Expression::Variable(name)) => Ok(Expression::Assign(name, Box::new(value))),
                 Ok(Expression::Get(obj, prop)) => Ok(Expression::Set(obj, prop, Box::new(value))),
                 _ => Err(ParseError::NewParseError(
                     "Invalid assignment target".into(),
                 )),
             };
+
+            return ret_expr;
         }
 
         expr
