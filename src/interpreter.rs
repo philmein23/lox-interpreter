@@ -24,15 +24,23 @@ trait LoxCallable {
 #[derive(Clone, Debug)]
 struct LoxFunction {
     name: String,
+    func_id: u64,
     params: Vec<String>,
     body: Vec<Statement>,
     closure: Environment,
 }
 
 impl LoxFunction {
-    fn new(name: String, params: Vec<String>, body: Vec<Statement>, closure: Environment) -> Self {
+    fn new(
+        name: String,
+        func_id: u64,
+        params: Vec<String>,
+        body: Vec<Statement>,
+        closure: Environment,
+    ) -> Self {
         LoxFunction {
             name,
+            func_id,
             params,
             body,
             closure,
@@ -72,12 +80,23 @@ impl LoxCallable for LoxFunction {
 #[derive(Clone, Debug)]
 struct LoxClass {
     name: String,
-    methods: HashMap<String, LoxFunction>,
+    class_id: u64,
+    methods: HashMap<String, u64>,
 }
 
 impl LoxClass {
-    fn new(name: String, methods: HashMap<String, LoxFunction>) -> Self {
-        LoxClass { name, methods }
+    fn new(name: String, class_id: u64, methods: HashMap<String, u64>) -> Self {
+        LoxClass {
+            name,
+            class_id,
+            methods,
+        }
+    }
+}
+
+impl LoxClass {
+    fn find_method(&self, method_name: &String) -> Option<&u64> {
+        self.methods.get(method_name)
     }
 }
 
@@ -106,8 +125,26 @@ impl LoxInstance {
         LoxInstance { class_name, fields }
     }
 
-    fn get(&self, prop: String) -> Option<&Object> {
-        self.fields.get(&prop)
+    fn get(&self, prop: String, interpreter: &mut Interpreter) -> Option<Object> {
+        match self.fields.get(&prop) {
+            Some(val) => Some(val.clone()),
+            None => {
+                let found_class = interpreter.env.get(&self.class_name);
+                match found_class {
+                    Some(Object::LoxClass(_, class_id)) => {
+                        let class = interpreter.lox_classes.get(&class_id).unwrap();
+                        let found_method_id = class.find_method(&prop).unwrap();
+
+                        if let Some(func) = interpreter.lox_functions.get(found_method_id) {
+                            return Some(Object::LoxFunction(func.name.clone(), func.func_id));
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                }
+            }
+        }
     }
     fn set(&mut self, prop: String, value: Object) {
         self.fields.insert(prop, value);
@@ -185,15 +222,22 @@ impl Interpreter {
                     let class_id = self.alloc_id();
                     self.env
                         .define(name.clone(), Object::LoxClass(name.clone(), class_id));
-                    let mut methods_map: HashMap<String, LoxFunction> = HashMap::new();
+                    let mut methods_map: HashMap<String, u64> = HashMap::new();
                     for method in methods {
                         if let Statement::Function(name, params, body) = method {
-                            let lox_function =
-                                LoxFunction::new(name.clone(), params, body, self.env.clone());
-                            methods_map.insert(name.clone(), lox_function);
+                            let method_id = self.alloc_id();
+                            let lox_function = LoxFunction::new(
+                                name.clone(),
+                                method_id,
+                                params,
+                                body,
+                                self.env.clone(),
+                            );
+                            methods_map.insert(name.clone(), method_id);
+                            self.lox_functions.insert(method_id, lox_function);
                         }
                     }
-                    let lox_class = LoxClass::new(name.clone(), methods_map);
+                    let lox_class = LoxClass::new(name.clone(), class_id, methods_map);
                     self.lox_classes.insert(class_id, lox_class);
                 }
                 Statement::Function(name, params, body) => {
@@ -201,7 +245,7 @@ impl Interpreter {
                     self.env
                         .define(name.clone(), Object::LoxFunction(name.clone(), func_id));
                     let lox_function =
-                        LoxFunction::new(name.clone(), params, body, self.env.clone());
+                        LoxFunction::new(name.clone(), func_id, params, body, self.env.clone());
                     self.lox_functions.insert(func_id, lox_function);
                 }
                 Statement::Return(maybe_value) => {
@@ -338,7 +382,7 @@ impl Interpreter {
                 match obj {
                     Object::LoxInstance(_, id) => {
                         let instance = self.lox_instances.get(&id).map(|i| i.to_owned()).unwrap();
-                        let value = instance.get(property).unwrap();
+                        let value = instance.get(property, self).unwrap();
                         Ok(value.clone())
                     }
                     _ => Err(RuntimeError::NewRuntimeError(format!(

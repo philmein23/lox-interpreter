@@ -293,6 +293,25 @@ fn test_class() {
     test_call_interpreter(input.as_str());
 }
 
+#[test]
+fn test_class_instance_method_call() {
+    let input = String::from(
+        r#"
+        class Person {
+            getAge() {
+                return 2;
+            }
+        }
+
+        var instance = Person();
+        print instance.getAge();
+
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();
