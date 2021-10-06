@@ -73,6 +73,7 @@ pub enum Expression {
     Call(Box<Expression>, Vec<Box<Expression>>),
     Get(Box<Expression>, String),
     Set(Box<Expression>, String, Box<Expression>),
+    This(),
     Nil,
 }
 
@@ -119,6 +120,9 @@ impl Display for Expression {
             }
             Expression::Set(object, prop, value) => {
                 write!(f, "{}.{}={}", object, prop, value)
+            }
+            Expression::This() => {
+                write!(f, "this")
             }
             Expression::Nil => {
                 write!(f, "nil")

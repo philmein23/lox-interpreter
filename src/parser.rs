@@ -544,6 +544,7 @@ impl<'a> Parser<'a> {
 
                 Ok(Expression::Grouping(Box::new(expr)))
             }
+            Some(Token::THIS) => Ok(Expression::This()),
             Some(Token::IDENTIFIER(s)) => Ok(Expression::Variable(s.to_string())),
             _ => Err(ParseError::NewParseError("Expected expression.".into())),
         };

@@ -106,7 +106,7 @@ impl LoxCallable for LoxClass {
     }
     fn call(&self, interpreter: &mut Interpreter, args: &[Object]) -> Result<Object, RuntimeError> {
         let insta_id = interpreter.alloc_id();
-        let instance = LoxInstance::new(self.name.clone());
+        let instance = LoxInstance::new(self.name.clone(), insta_id);
         interpreter.lox_instances.insert(insta_id, instance);
 
         Ok(Object::LoxInstance(self.name.clone(), insta_id))
@@ -116,13 +116,18 @@ impl LoxCallable for LoxClass {
 #[derive(Clone, Debug)]
 struct LoxInstance {
     class_name: String,
+    insta_id: u64,
     fields: HashMap<String, Object>,
 }
 
 impl LoxInstance {
-    fn new(class_name: String) -> Self {
+    fn new(class_name: String, insta_id: u64) -> Self {
         let fields = HashMap::new();
-        LoxInstance { class_name, fields }
+        LoxInstance {
+            class_name,
+            insta_id,
+            fields,
+        }
     }
 
     fn get(&self, prop: String, interpreter: &mut Interpreter) -> Option<Object> {
@@ -135,7 +140,15 @@ impl LoxInstance {
                         let class = interpreter.lox_classes.get(&class_id).unwrap();
                         let found_method_id = class.find_method(&prop).unwrap();
 
-                        if let Some(func) = interpreter.lox_functions.get(found_method_id) {
+                        if let Some(func) = interpreter.lox_functions.get_mut(found_method_id) {
+                            // ensure "this" is bound to the object that calls the method
+                            let mut this_env = Environment::extend(func.closure.clone());
+                            this_env.define(
+                                "this".into(),
+                                Object::LoxInstance(self.class_name.clone(), self.insta_id),
+                            );
+                            func.closure = this_env;
+
                             return Some(Object::LoxFunction(func.name.clone(), func.func_id));
                         } else {
                             None
@@ -315,6 +328,10 @@ impl Interpreter {
 
     fn evaluate_expression(&mut self, expr: Expression) -> Result<Object, RuntimeError> {
         match expr {
+            Expression::This() => {
+                let value = self.env.get("this".into()).unwrap();
+                Ok(value)
+            }
             Expression::Binary(left, operator, right) => {
                 let left = self.evaluate_expression(*left)?;
                 let right = self.evaluate_expression(*right)?;
