@@ -1,3 +1,4 @@
+use std::cell::RefMut;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::vec;
@@ -109,7 +110,23 @@ impl LoxCallable for LoxClass {
         let instance = LoxInstance::new(self.name.clone(), insta_id);
         interpreter.lox_instances.insert(insta_id, instance);
 
-        Ok(Object::LoxInstance(self.name.clone(), insta_id))
+        let instance_val = Object::LoxInstance(self.name.clone(), insta_id);
+
+        // if there's a constructor (init) function, then execute it during the creation of an instance
+        if let Some(id) = self.find_method(&"init".into()) {
+            let mut found_method = interpreter
+                .lox_functions
+                .get(id)
+                .map(|f| f.to_owned())
+                .unwrap();
+            let mut this_env = Environment::extend(found_method.closure.clone());
+            this_env.define("this".into(), instance_val.clone());
+            found_method.closure = this_env;
+
+            let _ = found_method.call(interpreter, args);
+        }
+
+        Ok(instance_val)
     }
 }
 

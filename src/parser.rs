@@ -304,7 +304,7 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // consume the ';'
         Ok(Statement::Print(Box::new(expr)))
     }
-
+    
     fn assignment(&mut self) -> Result<Expression, ParseError> {
         let expr = self.or();
 

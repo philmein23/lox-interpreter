@@ -332,6 +332,35 @@ fn test_this_expression() {
     test_call_interpreter(input.as_str());
 }
 
+#[test]
+fn test_init_constructor() {
+    let input = String::from(
+        r#"
+        class Person {
+            init(age, name) {
+                this.age = age;
+                this.name = name;
+            }
+
+            getAge() {
+               return this.age;
+            }
+
+            getName() {
+                return this.name;
+            }
+        }
+
+        var instance = Person(45, "Phil");
+        print instance.getAge();
+        print instance.getName();
+
+        "#,
+    );
+
+    test_call_interpreter(input.as_str());
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();
