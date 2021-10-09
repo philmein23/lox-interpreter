@@ -354,6 +354,7 @@ fn test_init_constructor() {
         var instance = Person(45, "Phil");
         print instance.getAge();
         print instance.getName();
+        print instance.init(80, "Bobby");
 
         "#,
     );

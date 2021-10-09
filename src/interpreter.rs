@@ -29,6 +29,7 @@ struct LoxFunction {
     params: Vec<String>,
     body: Vec<Statement>,
     closure: Environment,
+    is_initializer: bool,
 }
 
 impl LoxFunction {
@@ -38,6 +39,7 @@ impl LoxFunction {
         params: Vec<String>,
         body: Vec<Statement>,
         closure: Environment,
+        is_initializer: bool,
     ) -> Self {
         LoxFunction {
             name,
@@ -45,6 +47,7 @@ impl LoxFunction {
             params,
             body,
             closure,
+            is_initializer,
         }
     }
 }
@@ -70,6 +73,11 @@ impl LoxCallable for LoxFunction {
         let _ = interpreter.evaluate(self.body.clone());
 
         let retval = interpreter.retval.clone();
+
+        if self.is_initializer == true {
+            let found_this = interpreter.env.get("this".into()).unwrap();
+            return Ok(found_this);
+        }
         // after evaluating function's body, then reset env with the global environment
         interpreter.env = saved_env;
         interpreter.retval = saved_retval;
@@ -123,6 +131,9 @@ impl LoxCallable for LoxClass {
             this_env.define("this".into(), instance_val.clone());
             found_method.closure = this_env;
 
+            interpreter.lox_functions.insert(*id, found_method.clone());
+
+            // calls the contructor with n arguments to initialize object with data
             let _ = found_method.call(interpreter, args);
         }
 
@@ -256,12 +267,14 @@ impl Interpreter {
                     for method in methods {
                         if let Statement::Function(name, params, body) = method {
                             let method_id = self.alloc_id();
+                            let is_initializer = name.eq("init".into());
                             let lox_function = LoxFunction::new(
                                 name.clone(),
                                 method_id,
                                 params,
                                 body,
                                 self.env.clone(),
+                                is_initializer,
                             );
                             methods_map.insert(name.clone(), method_id);
                             self.lox_functions.insert(method_id, lox_function);
@@ -274,8 +287,14 @@ impl Interpreter {
                     let func_id = self.alloc_id();
                     self.env
                         .define(name.clone(), Object::LoxFunction(name.clone(), func_id));
-                    let lox_function =
-                        LoxFunction::new(name.clone(), func_id, params, body, self.env.clone());
+                    let lox_function = LoxFunction::new(
+                        name.clone(),
+                        func_id,
+                        params,
+                        body,
+                        self.env.clone(),
+                        false,
+                    );
                     self.lox_functions.insert(func_id, lox_function);
                 }
                 Statement::Return(maybe_value) => {
