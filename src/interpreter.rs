@@ -113,7 +113,6 @@ impl LoxClass {
                 if let Some(super_id) = self.super_class {
                     let found_class = interpreter.lox_classes.get(&super_id).unwrap();
                     let val = found_class.find_method(interpreter, method_name);
-                    println!("METHOD SUPER CLASS {:?}", found_class);
                     return val;
                 } else {
                     return None;
@@ -184,7 +183,6 @@ impl LoxInstance {
 
                         if let Some(func) = interpreter.lox_functions.get_mut(&found_method_id) {
                             // ensure "this" is bound to the object that calls the method
-                            println!("FOUND METHOD FUNC: {:?}", func);
                             let mut this_env = Environment::extend(func.closure.clone());
                             this_env.define(
                                 "this".into(),

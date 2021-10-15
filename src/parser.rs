@@ -72,7 +72,6 @@ impl<'a> Parser<'a> {
             };
             super_class = Some(Box::new(Expression::Variable(super_name)));
             self.tokens.next(); // consume the super class identifier
-            println!("SUPER CLASS {:?}", super_class);
         }
         self.tokens.next(); // consume the '{' token
         let mut methods = vec![];
@@ -516,7 +515,6 @@ impl<'a> Parser<'a> {
                 _ => break,
             }
         }
-        println!("TEST CALL {:?}", expr);
         Ok(expr)
     }
 
