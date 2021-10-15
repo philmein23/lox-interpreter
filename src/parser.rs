@@ -59,6 +59,21 @@ impl<'a> Parser<'a> {
             }
         };
         self.tokens.next(); // consume the identifier token
+        let mut super_class = None;
+        if let Some(Token::LESS) = self.tokens.peek() {
+            self.tokens.next(); // consume the '<' token
+            let super_name = match self.tokens.peek() {
+                Some(Token::IDENTIFIER(name)) => name.to_string(),
+                _ => {
+                    return Err(ParseError::NewParseError(
+                        "Expected superclass to have identifier".into(),
+                    ))
+                }
+            };
+            super_class = Some(Box::new(Expression::Variable(super_name)));
+            self.tokens.next(); // consume the super class identifier
+            println!("SUPER CLASS {:?}", super_class);
+        }
         self.tokens.next(); // consume the '{' token
         let mut methods = vec![];
 
@@ -75,7 +90,7 @@ impl<'a> Parser<'a> {
 
         self.tokens.next(); // consume the '}' token
 
-        Ok(Statement::Class(name, methods))
+        Ok(Statement::Class(name, super_class, methods))
     }
 
     fn var_declaration(&mut self) -> Result<Statement, ParseError> {
@@ -304,7 +319,7 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // consume the ';'
         Ok(Statement::Print(Box::new(expr)))
     }
-    
+
     fn assignment(&mut self) -> Result<Expression, ParseError> {
         let expr = self.or();
 

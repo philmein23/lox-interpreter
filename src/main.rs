@@ -362,6 +362,31 @@ fn test_init_constructor() {
     test_call_interpreter(input.as_str());
 }
 
+#[test]
+fn test_super_class() {
+    let input = String::from(
+        r#"
+        class Person {
+            getAge() {
+                return this.age;
+            }
+        } 
+
+        class Phil < Person {
+            getName() {
+                return this.name;
+            }
+        }
+        var instance = Phil();
+        instance.age = 34;
+        instance.name = "Phil";
+        print instance.getAge();
+        "#,
+    );
+
+    test_call_interpreter(input.as_str())
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();

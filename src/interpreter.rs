@@ -90,22 +90,36 @@ impl LoxCallable for LoxFunction {
 struct LoxClass {
     name: String,
     class_id: u64,
+    super_class: Option<u64>,
     methods: HashMap<String, u64>,
 }
 
 impl LoxClass {
-    fn new(name: String, class_id: u64, methods: HashMap<String, u64>) -> Self {
+    fn new(name: String, class_id: u64, super_class: Option<u64>, methods: HashMap<String, u64>) -> Self {
         LoxClass {
             name,
             class_id,
+            super_class,
             methods,
         }
     }
 }
 
 impl LoxClass {
-    fn find_method(&self, method_name: &String) -> Option<&u64> {
-        self.methods.get(method_name)
+    fn find_method(&self, interpreter: &Interpreter, method_name: &String) -> Option<u64> {
+        match self.methods.get(method_name) {
+            Some(method_id) => Some(*method_id),
+            None => {
+                if let Some(super_id) = self.super_class {
+                    let found_class = interpreter.lox_classes.get(&super_id).unwrap();
+                    let val = found_class.find_method(interpreter, method_name);
+                    println!("METHOD SUPER CLASS {:?}", found_class);
+                    return val;
+                } else {
+                    return None;
+                }
+            }
+        }
     }
 }
 
@@ -121,17 +135,17 @@ impl LoxCallable for LoxClass {
         let instance_val = Object::LoxInstance(self.name.clone(), insta_id);
 
         // if there's a constructor (init) function, then execute it during the creation of an instance
-        if let Some(id) = self.find_method(&"init".into()) {
+        if let Some(id) = self.find_method(interpreter, &"init".into()) {
             let mut found_method = interpreter
                 .lox_functions
-                .get(id)
+                .get(&id)
                 .map(|f| f.to_owned())
                 .unwrap();
             let mut this_env = Environment::extend(found_method.closure.clone());
             this_env.define("this".into(), instance_val.clone());
             found_method.closure = this_env;
 
-            interpreter.lox_functions.insert(*id, found_method.clone());
+            interpreter.lox_functions.insert(id, found_method.clone());
 
             // calls the contructor with n arguments to initialize object with data
             let _ = found_method.call(interpreter, args);
@@ -166,10 +180,11 @@ impl LoxInstance {
                 match found_class {
                     Some(Object::LoxClass(_, class_id)) => {
                         let class = interpreter.lox_classes.get(&class_id).unwrap();
-                        let found_method_id = class.find_method(&prop).unwrap();
+                        let found_method_id = class.find_method(interpreter, &prop).unwrap();
 
-                        if let Some(func) = interpreter.lox_functions.get_mut(found_method_id) {
+                        if let Some(func) = interpreter.lox_functions.get_mut(&found_method_id) {
                             // ensure "this" is bound to the object that calls the method
+                            println!("FOUND METHOD FUNC: {:?}", func);
                             let mut this_env = Environment::extend(func.closure.clone());
                             this_env.define(
                                 "this".into(),
@@ -259,7 +274,17 @@ impl Interpreter {
                 Statement::While(cond, body) => {
                     self.evaluate_while_statement(&*cond, &*body);
                 }
-                Statement::Class(name, methods) => {
+                Statement::Class(name, super_class, methods) => {
+                    let mut super_class_id = None;
+                    if super_class.is_some() {
+                        let sup = super_class.unwrap();
+                        let evaled = self.evaluate_expression(*sup)?;
+
+                        print!("Evaled {:?}", evaled);
+                        if let Object::LoxClass(_, id) = evaled {
+                            super_class_id = Some(id);
+                        }
+                    }
                     let class_id = self.alloc_id();
                     self.env
                         .define(name.clone(), Object::LoxClass(name.clone(), class_id));
@@ -280,7 +305,8 @@ impl Interpreter {
                             self.lox_functions.insert(method_id, lox_function);
                         }
                     }
-                    let lox_class = LoxClass::new(name.clone(), class_id, methods_map);
+                    let lox_class =
+                        LoxClass::new(name.clone(), class_id, super_class_id, methods_map);
                     self.lox_classes.insert(class_id, lox_class);
                 }
                 Statement::Function(name, params, body) => {
