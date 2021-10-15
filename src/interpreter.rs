@@ -278,7 +278,6 @@ impl Interpreter {
                         let sup = super_class.unwrap();
                         let evaled = self.evaluate_expression(*sup)?;
 
-                        print!("Evaled {:?}", evaled);
                         if let Object::LoxClass(_, id) = evaled {
                             super_class_id = Some(id);
                         }
