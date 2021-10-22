@@ -83,6 +83,7 @@ pub enum Expression {
     Get(Box<Expression>, String),
     Set(Box<Expression>, String, Box<Expression>),
     This(),
+    Super(String),
     Nil,
 }
 
@@ -132,6 +133,9 @@ impl Display for Expression {
             }
             Expression::This() => {
                 write!(f, "this")
+            }
+            Expression::Super(method) => {
+                write!(f, "super.{}", method)
             }
             Expression::Nil => {
                 write!(f, "nil")

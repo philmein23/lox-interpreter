@@ -561,8 +561,22 @@ impl<'a> Parser<'a> {
             Some(Token::IDENTIFIER(s)) => Ok(Expression::Variable(s.to_string())),
             _ => Err(ParseError::NewParseError("Expected expression.".into())),
         };
-        self.tokens.next(); // consume the token
 
+        if let Some(Token::SUPER) = self.tokens.peek() {
+            self.tokens.next(); // consume the "super" token
+            self.tokens.next(); // consume the . token
+            let method;
+            method = if let Some(Token::IDENTIFIER(method)) = self.tokens.peek() {
+                method.clone()
+            } else {
+                return Err(ParseError::NewParseError("Expected method name".into()));
+            };
+            self.tokens.next(); // consume the identifier token
+
+            return Ok(Expression::Super(method));
+        } else {
+            self.tokens.next(); // consume the token
+        }
         result
     }
 

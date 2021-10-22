@@ -387,6 +387,34 @@ fn test_super_class() {
     test_call_interpreter(input.as_str())
 }
 
+#[test]
+fn test_super_call() {
+    let input = String::from(
+        r#"
+        class Person {
+            getAge() {
+                return this.age;
+            }
+        } 
+
+        class Phil < Person {
+            getName() {
+                var age = super.getAge();
+                print age;
+
+                return this.name;
+            }
+        }
+        var instance = Phil();
+        instance.age = 34;
+        instance.name = "Phil";
+        print instance.getName();
+        "#,
+    );
+
+    test_call_interpreter(input.as_str())
+}
+
 fn test_call_interpreter(input: &str) {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens().unwrap();

@@ -63,12 +63,14 @@ impl LoxCallable for LoxFunction {
         for (idx, param) in self.params.iter().enumerate() {
             new_env.define(param.into(), args[idx].clone());
         }
+        println!("TEST CALL");
         // cache the global environment
         let saved_env = interpreter.env.clone();
         let saved_retval = interpreter.retval.clone();
-
+        let saved_enclosing_func = interpreter.enclosing_function.clone();
         // set the env to newly created function's environment
         interpreter.env = new_env;
+        interpreter.enclosing_function = Some(self.func_id);
 
         let _ = interpreter.evaluate(self.body.clone());
 
@@ -79,8 +81,10 @@ impl LoxCallable for LoxFunction {
             return Ok(found_this);
         }
         // after evaluating function's body, then reset env with the global environment
+        // along with the original return value (None) and enclosing function (None)
         interpreter.env = saved_env;
         interpreter.retval = saved_retval;
+        interpreter.enclosing_function = saved_enclosing_func;
 
         Ok(retval.unwrap_or_else(|| Object::Nil))
     }
@@ -95,7 +99,12 @@ struct LoxClass {
 }
 
 impl LoxClass {
-    fn new(name: String, class_id: u64, super_class: Option<u64>, methods: HashMap<String, u64>) -> Self {
+    fn new(
+        name: String,
+        class_id: u64,
+        super_class: Option<u64>,
+        methods: HashMap<String, u64>,
+    ) -> Self {
         LoxClass {
             name,
             class_id,
@@ -148,8 +157,9 @@ impl LoxCallable for LoxClass {
 
             // calls the contructor with n arguments to initialize object with data
             let _ = found_method.call(interpreter, args);
-        }
+       }
 
+        println!("CALLING INSTANCE");
         Ok(instance_val)
     }
 }
@@ -212,6 +222,7 @@ pub struct Interpreter {
     lox_classes: HashMap<u64, LoxClass>,
     retval: Option<Object>,
     counter: u64,
+    enclosing_function: Option<u64>,
 }
 
 impl Interpreter {
@@ -228,6 +239,7 @@ impl Interpreter {
             lox_classes,
             retval,
             counter: 0,
+            enclosing_function: None,
         }
     }
 
@@ -274,13 +286,24 @@ impl Interpreter {
                 }
                 Statement::Class(name, super_class, methods) => {
                     let mut super_class_id = None;
-                    if super_class.is_some() {
-                        let sup = super_class.unwrap();
-                        let evaled = self.evaluate_expression(*sup)?;
+                    let mut super_env;
 
-                        if let Object::LoxClass(_, id) = evaled {
+                    if super_class.is_some() {
+                        let sup = super_class.clone().unwrap();
+                        let evaled = self.evaluate_expression(*sup)?;
+                        let super_class_name = if let Object::LoxClass(name, id) = evaled {
                             super_class_id = Some(id);
-                        }
+                            name
+                        } else {
+                            return Err(RuntimeError::NewRuntimeError(
+                                "Expected runtime object".into(),
+                            ));
+                        };
+                        let rt_super =
+                            Object::LoxClass(super_class_name, super_class_id.unwrap().clone());
+                        super_env = Environment::extend(self.env.clone());
+                        super_env.define("super".to_string(), rt_super);
+                        self.env = super_env;
                     }
                     let class_id = self.alloc_id();
                     self.env
@@ -302,9 +325,16 @@ impl Interpreter {
                             self.lox_functions.insert(method_id, lox_function);
                         }
                     }
+                    if super_class.is_some() {
+                        if let Some(enclosing) = self.env.enclosing.clone() {
+                            self.env = *enclosing;
+                        }
+                    }
                     let lox_class =
                         LoxClass::new(name.clone(), class_id, super_class_id, methods_map);
                     self.lox_classes.insert(class_id, lox_class);
+
+                       println!("ABOUT TO RESET ENV");
                 }
                 Statement::Function(name, params, body) => {
                     let func_id = self.alloc_id();
@@ -391,6 +421,45 @@ impl Interpreter {
                 let value = self.env.get("this".into()).unwrap();
                 Ok(value)
             }
+            Expression::Super(method) => match self.enclosing_function {
+                Some(func_id) => {
+                    let found_enclosing_func = self.lox_functions.get(&func_id);
+                    println!("FOUND ENCLOSING");
+
+                    match found_enclosing_func {
+                        Some(func) => match func.closure.get("super") {
+                            Some(Object::LoxClass(name, super_id)) => {
+                                match self.lox_classes.get(&super_id) {
+                                    Some(super_class) => {
+                                        let found_method_id =
+                                            super_class.find_method(self, &method).unwrap();
+                                        let found_method =
+                                            self.lox_functions.get(&found_method_id).unwrap();
+                                        println!("SUPER: {:?}", found_method);
+                                        Ok(Object::LoxFunction(
+                                            found_method.name.clone(),
+                                            found_method.func_id,
+                                        ))
+                                    }
+                                    None => Err(RuntimeError::NewRuntimeError(
+                                        "No runtime representation of class found".into(),
+                                    )),
+                                }
+                            }
+                            _ => Err(RuntimeError::NewRuntimeError(
+                                "No super class exist in the method's enclosing environment".into(),
+                            )),
+                        },
+                        None => Err(RuntimeError::NewRuntimeError(
+                            "No enclosing function runtime representation exist".into(),
+                        )),
+                    }
+                }
+
+                None => Err(RuntimeError::NewRuntimeError(
+                    "No enclosing method exists".into(),
+                )),
+            },
             Expression::Binary(left, operator, right) => {
                 let left = self.evaluate_expression(*left)?;
                 let right = self.evaluate_expression(*right)?;
